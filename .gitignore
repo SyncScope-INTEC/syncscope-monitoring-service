@@ -208,3 +208,8 @@ __marimo__/
 
 # Staticfiles
 staticfiles/
+
+# Local environment variables
+.env
+.venv/
+*.env
