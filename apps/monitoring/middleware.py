@@ -84,15 +84,32 @@ class CORSPreflightMiddleware(MiddlewareMixin):
 
 class SecurityHeadersMiddleware(MiddlewareMixin):
     """
-    Add security headers to responses.
+    Add comprehensive security headers to responses.
     """
     
     def process_response(self, request, response):
-        # Security headers
+        # Core security headers
         response['X-Content-Type-Options'] = 'nosniff'
         response['X-Frame-Options'] = 'DENY'
         response['X-XSS-Protection'] = '1; mode=block'
         response['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+        
+        # Feature policy / permissions policy
+        response['Permissions-Policy'] = (
+            'camera=(), microphone=(), geolocation=(), '
+            'payment=(), usb=(), bluetooth=(), magnetometer=(), gyroscope=()'
+        )
+        
+        # HSTS for HTTPS requests
+        if request.is_secure():
+            response['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains; preload'
+        
+        # Content Security Policy for API
+        response['Content-Security-Policy'] = (
+            "default-src 'none'; "
+            "frame-ancestors 'none'; "
+            "base-uri 'none'"
+        )
         
         # API-specific headers
         response['X-Service'] = 'syncscope-monitoring-service'
@@ -101,6 +118,13 @@ class SecurityHeadersMiddleware(MiddlewareMixin):
         # Add request ID if available
         if hasattr(request, 'request_id'):
             response['X-Request-ID'] = request.request_id
+        
+        # Rate limiting headers (if available)
+        if hasattr(request, 'rate_limit_info'):
+            info = request.rate_limit_info
+            response['X-RateLimit-Limit'] = str(info.get('limit', ''))
+            response['X-RateLimit-Remaining'] = str(info.get('remaining', ''))
+            response['X-RateLimit-Reset'] = str(info.get('reset', ''))
         
         return response
 

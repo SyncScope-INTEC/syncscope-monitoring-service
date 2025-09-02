@@ -1,0 +1,49 @@
+# CODEOWNERS file for SyncScope Monitoring Service
+# This file defines code ownership for automatic review assignments
+
+# Global default owners (fallback for any files not specified below)
+* @AlejandroBeltre
+
+# Production branch protection - requires manual approval
+# All changes to production-related files require owner approval
+/prod/* @AlejandroBeltre
+/production/* @AlejandroBeltre
+
+# Critical configuration files
+/.env* @AlejandroBeltre
+/config/settings.py @AlejandroBeltre
+/Dockerfile @AlejandroBeltre
+/docker-compose*.yml @AlejandroBeltre
+/requirements.txt @AlejandroBeltre
+/pyproject.toml @AlejandroBeltre
+/Makefile @AlejandroBeltre
+
+# Database migrations (require careful review)
+/apps/*/migrations/ @AlejandroBeltre
+
+# GitHub workflows and settings
+/.github/ @AlejandroBeltre
+
+# Monitoring-specific security files
+/apps/monitoring/middleware.py @AlejandroBeltre
+/apps/monitoring/authentication.py @AlejandroBeltre
+/apps/monitoring/auth_utils.py @AlejandroBeltre
+/apps/monitoring/db_mixins.py @AlejandroBeltre
+/apps/monitoring/health.py @AlejandroBeltre
+
+# Infrastructure and deployment
+/entrypoint.sh @AlejandroBeltre
+/manage.py @AlejandroBeltre
+
+# Database and serverless configuration
+/config/database.py @AlejandroBeltre
+/config/database_retry.py @AlejandroBeltre
+/config/serverless.py @AlejandroBeltre
+
+# Monitoring and task management
+/apps/monitoring/tasks.py @AlejandroBeltre
+/apps/monitoring/redis_client.py @AlejandroBeltre
+/config/celery.py @AlejandroBeltre
+
+# Documentation that affects deployment
+/README.md @AlejandroBeltre

@@ -1,12 +1,16 @@
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
+from rest_framework.views import APIView
 from .permissions import IsAuthenticated, CanAccessUserData
 from rest_framework import status
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 from drf_spectacular.openapi import OpenApiTypes
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from .mixins import PerformanceMonitoringMixin, CacheHealthCheck
+from .db_mixins import ServerlessViewMixin
+from config.database_retry import DatabaseHealthCheck
 
 from .models import DeveloperSession, ActivityLog, CodeMetrics, GitEvent
 from .serializers import (
@@ -29,13 +33,121 @@ logger = logging.getLogger(__name__)
 
 @extend_schema(
     tags=['Health'],
-    responses={200: {'description': 'Service health status'}}
+    responses={
+        200: {
+            'description': 'Service health status',
+            'example': {
+                'status': 'healthy',
+                'service': 'syncscope-monitoring-service',
+                'version': '1.0.0',
+                'timestamp': '2024-01-01T00:00:00Z',
+                'checks': {
+                    'database': 'healthy',
+                    'redis': 'healthy'
+                }
+            }
+        },
+        503: {'description': 'Service unhealthy'}
+    }
 )
 @api_view(["GET"])
 @permission_classes([AllowAny])
 @health_ratelimit
 def health_check(request):
-    return Response({"status": "healthy", "service": "syncscope-monitoring-service"}, status=status.HTTP_200_OK)
+    """Comprehensive health check endpoint."""
+    from django.conf import settings
+    import time
+    
+    start_time = time.time()
+    checks = {}
+    overall_healthy = True
+    
+    # Check database
+    try:
+        db_healthy = DatabaseHealthCheck.is_healthy(use_cache=False)
+        checks['database'] = 'healthy' if db_healthy else 'unhealthy'
+        if not db_healthy:
+            overall_healthy = False
+    except Exception as e:
+        checks['database'] = f'error: {str(e)}'
+        overall_healthy = False
+    
+    # Check Redis/Cache
+    try:
+        cache_healthy = CacheHealthCheck.is_healthy()
+        checks['redis'] = 'healthy' if cache_healthy else 'unhealthy'
+        if not cache_healthy:
+            overall_healthy = False
+    except Exception as e:
+        checks['redis'] = f'error: {str(e)}'
+        overall_healthy = False
+    
+    # Get schema info
+    try:
+        schemas = DatabaseHealthCheck.get_schema_info()
+        checks['schemas'] = schemas if schemas else ['public']
+    except Exception:
+        checks['schemas'] = ['unknown']
+    
+    response_time = round((time.time() - start_time) * 1000, 2)
+    
+    response_data = {
+        "status": "healthy" if overall_healthy else "unhealthy",
+        "service": "syncscope-monitoring-service",
+        "version": getattr(settings, 'VERSION', '1.0.0'),
+        "timestamp": timezone.now().isoformat(),
+        "response_time_ms": response_time,
+        "checks": checks
+    }
+    
+    status_code = status.HTTP_200_OK if overall_healthy else status.HTTP_503_SERVICE_UNAVAILABLE
+    return Response(response_data, status=status_code)
+
+
+@extend_schema(
+    tags=['Health'],
+    responses={200: {'description': 'Liveness probe - service is running'}}
+)
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def liveness_check(request):
+    """Liveness probe endpoint for Kubernetes."""
+    return Response({
+        "status": "alive",
+        "service": "syncscope-monitoring-service",
+        "timestamp": timezone.now().isoformat()
+    }, status=status.HTTP_200_OK)
+
+
+@extend_schema(
+    tags=['Health'],
+    responses={
+        200: {'description': 'Readiness probe - service is ready to accept traffic'},
+        503: {'description': 'Service not ready'}
+    }
+)
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def readiness_check(request):
+    """Readiness probe endpoint for Kubernetes."""
+    # Check critical dependencies
+    db_ready = DatabaseHealthCheck.is_healthy()
+    cache_ready = CacheHealthCheck.is_healthy()
+    
+    ready = db_ready and cache_ready
+    
+    response_data = {
+        "status": "ready" if ready else "not_ready",
+        "service": "syncscope-monitoring-service",
+        "timestamp": timezone.now().isoformat(),
+        "dependencies": {
+            "database": "ready" if db_ready else "not_ready",
+            "redis": "ready" if cache_ready else "not_ready"
+        }
+    }
+    
+    status_code = status.HTTP_200_OK if ready else status.HTTP_503_SERVICE_UNAVAILABLE
+    return Response(response_data, status=status_code)
 
 
 @extend_schema(

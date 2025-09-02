@@ -1,9 +1,11 @@
 from django.db import models
 from django.utils import timezone
 import uuid
+from .db_mixins import RetryableModelMixin
+from config.database_retry import atomic_with_retry
 
 
-class DeveloperSession(models.Model):
+class DeveloperSession(RetryableModelMixin, models.Model):
     """
     Model representing a developer monitoring session.
     Maps to the monitoring.developer_sessions table.
@@ -53,9 +55,27 @@ class DeveloperSession(models.Model):
         if not self.session_end:
             self.session_end = timezone.now()
             self.save()
+    
+    @classmethod
+    @atomic_with_retry()
+    def cleanup_expired_sessions(cls, hours=24):
+        """Clean up sessions that have been active for too long."""
+        cutoff_time = timezone.now() - timezone.timedelta(hours=hours)
+        expired_sessions = cls.objects.filter(
+            session_start__lt=cutoff_time,
+            session_end__isnull=True
+        )
+        
+        count = 0
+        for session in expired_sessions:
+            session.session_end = timezone.now()
+            session.save()
+            count += 1
+        
+        return count
 
 
-class ActivityLog(models.Model):
+class ActivityLog(RetryableModelMixin, models.Model):
     """
     Model representing developer activity logs.
     Maps to the monitoring.activity_logs table.
@@ -114,7 +134,7 @@ class ActivityLog(models.Model):
         super().save(*args, **kwargs)
 
 
-class CodeMetrics(models.Model):
+class CodeMetrics(RetryableModelMixin, models.Model):
     """
     Model representing code metrics for files.
     Maps to the monitoring.code_metrics table.
@@ -167,7 +187,7 @@ class CodeMetrics(models.Model):
         super().save(*args, **kwargs)
 
 
-class GitEvent(models.Model):
+class GitEvent(RetryableModelMixin, models.Model):
     """
     Model representing git events.
     Maps to the monitoring.git_events table.

@@ -1,0 +1,433 @@
+name: CI/CD Pipeline - Monitoring Service
+
+on:
+  push:
+    branches: [dev, qa, prod]
+  pull_request:
+    branches: [dev, qa, prod]
+
+env:
+  PYTHON_VERSION: "3.11"
+
+# Add permissions for the workflow
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: test_syncscope_monitoring
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          # Fetch more history for proper diff comparison
+          fetch-depth: 0
+
+      - name: Set up Git for diff coverage
+        if: github.event_name == 'pull_request'
+        run: |
+          # Set up git configuration
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Ensure we have the base branch for comparison
+          echo "Setting up base branch for comparison..."
+          BASE_BRANCH="${{ github.base_ref }}"
+          echo "Base branch: $BASE_BRANCH"
+
+          # Fetch the base branch
+          git fetch origin "$BASE_BRANCH:$BASE_BRANCH" || echo "Branch $BASE_BRANCH already exists"
+
+          # List available branches for debugging
+          echo "Available branches:"
+          git branch -a
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Set up test environment
+        env:
+          SECRET_KEY: "test-secret-key-for-ci"
+          DEBUG: "True"
+          DB_NAME: "test_syncscope_monitoring"
+          DB_USER: "postgres"
+          DB_PASSWORD: "postgres"
+          DB_HOST: "localhost"
+          DB_PORT: "5432"
+          REDIS_URL: "redis://localhost:6379/0"
+          CELERY_BROKER_URL: "redis://localhost:6379/0"
+          CELERY_RESULT_BACKEND: "redis://localhost:6379/0"
+          ALLOWED_HOSTS: "localhost,127.0.0.1"
+          CORS_ALLOWED_ORIGINS: "http://localhost:3000"
+        run: |
+          # Create monitoring schema in PostgreSQL
+          PGPASSWORD=postgres psql -h localhost -U postgres -d test_syncscope_monitoring -c "CREATE SCHEMA IF NOT EXISTS monitoring;"
+          
+          # Run migrations
+          python manage.py migrate
+
+          # Verify the setup worked
+          python manage.py check
+
+      - name: Run linting
+        run: |
+          # Use Makefile linting if available
+          if [ -f "Makefile" ]; then
+            make lint
+          else
+            # Install linting tools if not in requirements
+            pip install ruff
+            ruff check .
+          fi
+
+      - name: Get changed files (PR only)
+        if: github.event_name == 'pull_request'
+        id: changed-files
+        uses: tj-actions/changed-files@v46
+        with:
+          files: |
+            **/*.py
+          files_ignore: |
+            migrations/**
+            tests/**
+            manage.py
+            __pycache__/**
+
+      - name: Debug git setup (PR only)
+        if: github.event_name == 'pull_request'
+        run: |
+          echo "=== Git Debug Information ==="
+          echo "Current HEAD: $(git rev-parse HEAD)"
+          echo "Current branch: $(git branch --show-current)"
+          echo "Base ref: ${{ github.base_ref }}"
+          echo "Head ref: ${{ github.head_ref }}"
+          echo ""
+          echo "Available branches:"
+          git branch -a
+          echo ""
+          echo "Recent commits:"
+          git log --oneline -5
+          echo "=========================="
+
+      - name: Run tests with differential coverage (PR)
+        if: github.event_name == 'pull_request'
+        env:
+          SECRET_KEY: "test-secret-key-for-ci"
+          DEBUG: "True"
+          DB_NAME: "test_syncscope_monitoring"
+          DB_USER: "postgres"
+          DB_PASSWORD: "postgres"
+          DB_HOST: "localhost"
+          DB_PORT: "5432"
+          REDIS_URL: "redis://localhost:6379/0"
+          CELERY_BROKER_URL: "redis://localhost:6379/0"
+          CELERY_RESULT_BACKEND: "redis://localhost:6379/0"
+          ALLOWED_HOSTS: "localhost,127.0.0.1"
+          CORS_ALLOWED_ORIGINS: "http://localhost:3000"
+        run: |
+          # Install diff-cover for differential coverage
+          pip install diff-cover
+
+          # Use Makefile test coverage if available
+          if [ -f "Makefile" ]; then
+            make coverage
+          else
+            # Run tests with coverage report generation
+            python -m pytest tests/ --cov=apps.monitoring --cov-report=html --cov-report=term --cov-report=xml
+          fi
+
+          # Generate text coverage report
+          python -m pytest --cov=apps.monitoring --cov-report=term > coverage-report.txt
+
+          # Generate differential coverage report only for changed files
+          if [ "${{ steps.changed-files.outputs.any_changed }}" == "true" ]; then
+            echo "🔍 Changed Python files:"
+            echo "${{ steps.changed-files.outputs.all_changed_files }}" | tr ' ' '\n' | sed 's/^/  📄 /'
+            echo ""
+            
+            # Get the base branch for comparison
+            BASE_BRANCH="${{ github.base_ref }}"
+            echo "📊 Comparing against base branch: $BASE_BRANCH"
+            echo ""
+            
+            # Create a temporary file to capture diff-cover output
+            DIFF_COVER_OUTPUT="/tmp/diff_cover_output.txt"
+            DIFF_COVER_STATUS=0
+            
+            # Try different comparison strategies
+            if git rev-parse "$BASE_BRANCH" >/dev/null 2>&1; then
+              echo "✅ Using local branch: $BASE_BRANCH"
+              diff-cover coverage.xml --compare-branch="$BASE_BRANCH" --fail-under=80 --show-uncovered > "$DIFF_COVER_OUTPUT" 2>&1 || DIFF_COVER_STATUS=$?
+            elif git rev-parse "origin/$BASE_BRANCH" >/dev/null 2>&1; then
+              echo "✅ Using origin branch: origin/$BASE_BRANCH"
+              diff-cover coverage.xml --compare-branch="origin/$BASE_BRANCH" --fail-under=80 --show-uncovered > "$DIFF_COVER_OUTPUT" 2>&1 || DIFF_COVER_STATUS=$?
+            else
+              echo "⚠️ Could not find base branch for comparison. Using HEAD~1 as fallback."
+              diff-cover coverage.xml --compare-branch="HEAD~1" --fail-under=80 --show-uncovered > "$DIFF_COVER_OUTPUT" 2>&1 || DIFF_COVER_STATUS=$?
+            fi
+            
+            # Set status for later steps
+            if [ $DIFF_COVER_STATUS -eq 0 ]; then
+              echo "✅ Differential coverage check PASSED (≥80% threshold met)"
+              echo "diff_coverage_status=passed" >> $GITHUB_ENV
+            else
+              echo "❌ Differential coverage check FAILED (below 80% threshold)"
+              echo "diff_coverage_status=failed" >> $GITHUB_ENV
+            fi
+            
+            # Store the diff-cover output for use in PR comments
+            echo "DIFF_COVER_OUTPUT<<EOF" >> $GITHUB_ENV
+            cat "$DIFF_COVER_OUTPUT" >> $GITHUB_ENV
+            echo "EOF" >> $GITHUB_ENV
+            
+          else
+            echo "ℹ️  No Python files changed, skipping differential coverage"
+            echo "diff_coverage_status=skipped" >> $GITHUB_ENV
+          fi
+
+      - name: Run tests with full coverage (Push to main)
+        if: github.event_name == 'push'
+        env:
+          SECRET_KEY: "test-secret-key-for-ci"
+          DEBUG: "True"
+          DB_NAME: "test_syncscope_monitoring"
+          DB_USER: "postgres"
+          DB_PASSWORD: "postgres"
+          DB_HOST: "localhost"
+          DB_PORT: "5432"
+          REDIS_URL: "redis://localhost:6379/0"
+          CELERY_BROKER_URL: "redis://localhost:6379/0"
+          CELERY_RESULT_BACKEND: "redis://localhost:6379/0"
+          ALLOWED_HOSTS: "localhost,127.0.0.1"
+          CORS_ALLOWED_ORIGINS: "http://localhost:3000"
+        run: |
+          # Use Makefile for full coverage testing if available
+          if [ -f "Makefile" ]; then
+            make coverage
+          else
+            # Run tests with full coverage
+            python -m pytest tests/ --cov=apps.monitoring --cov-report=term --cov-report=xml
+          fi
+
+      - name: Test Celery tasks
+        env:
+          SECRET_KEY: "test-secret-key-for-ci"
+          DEBUG: "True"
+          DB_NAME: "test_syncscope_monitoring"
+          DB_USER: "postgres"
+          DB_PASSWORD: "postgres"
+          DB_HOST: "localhost"
+          DB_PORT: "5432"
+          REDIS_URL: "redis://localhost:6379/0"
+          CELERY_BROKER_URL: "redis://localhost:6379/0"
+          CELERY_RESULT_BACKEND: "redis://localhost:6379/0"
+        run: |
+          # Test Celery tasks specifically
+          python -m pytest tests/test_tasks.py -v
+
+      - name: Check coverage threshold
+        id: coverage_check
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            # For PRs, check if coverage files were generated
+            if [ -f "coverage.xml" ] && [ -f "coverage-report.txt" ]; then
+              COVERAGE=$(python -c "import xml.etree.ElementTree as ET; tree = ET.parse('coverage.xml'); root = tree.getroot(); print(root.get('line-rate', '0'))" | awk '{printf "%.0f", $1 * 100}')
+              echo "Overall coverage: ${COVERAGE}%"
+              echo "coverage=${COVERAGE}" >> $GITHUB_OUTPUT
+              echo "type=differential" >> $GITHUB_OUTPUT
+              
+              # Check differential coverage status
+              DIFF_STATUS="$diff_coverage_status"
+              if [ "$DIFF_STATUS" = "passed" ]; then
+                echo "status=passed" >> $GITHUB_OUTPUT
+                echo "✅ Differential coverage check completed - all modified files meet 80% threshold"
+              elif [ "$DIFF_STATUS" = "failed" ]; then
+                echo "status=failed" >> $GITHUB_OUTPUT
+                echo "❌ Differential coverage check failed - some modified files below 80% threshold"
+                exit 1
+              else
+                echo "status=passed" >> $GITHUB_OUTPUT
+                echo "✅ No Python files changed, differential coverage not required"
+              fi
+            else
+              echo "coverage=N/A" >> $GITHUB_OUTPUT
+              echo "status=passed" >> $GITHUB_OUTPUT
+              echo "type=differential" >> $GITHUB_OUTPUT
+              echo "✅ No Python files changed, differential coverage not required"
+            fi
+          else
+            # For pushes to main, check full coverage
+            COVERAGE=$(python -c "import xml.etree.ElementTree as ET; tree = ET.parse('coverage.xml'); root = tree.getroot(); print(root.get('line-rate', '0'))" | awk '{printf "%.0f", $1 * 100}')
+            echo "Full coverage: ${COVERAGE}%"
+            echo "coverage=${COVERAGE}" >> $GITHUB_OUTPUT
+            echo "type=full" >> $GITHUB_OUTPUT
+
+            if ! python -c "import sys; sys.exit(0 if float('${COVERAGE}') >= 80 else 1)"; then
+              echo "❌ Coverage is ${COVERAGE}%, which is below the required 80% threshold"
+              echo "Please add more tests to improve coverage"
+              echo "status=failed" >> $GITHUB_OUTPUT
+              exit 1
+            else
+              echo "✅ Coverage is ${COVERAGE}%, which meets the 80% threshold"
+              echo "status=passed" >> $GITHUB_OUTPUT
+            fi
+          fi
+
+      - name: Comment coverage report on PR
+        if: github.event_name == 'pull_request' && steps.changed-files.outputs.any_changed == 'true'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const coverage = '${{ steps.coverage_check.outputs.coverage }}';
+            const status = '${{ steps.coverage_check.outputs.status }}';
+            const changedFiles = '${{ steps.changed-files.outputs.all_changed_files }}';
+            const isChanged = '${{ steps.changed-files.outputs.any_changed }}' === 'true';
+            
+            const fs = require('fs');
+            let coverageReport = '';
+            let diffCoverOutput = '';
+            
+            try {
+              coverageReport = fs.readFileSync('coverage-report.txt', 'utf8');
+            } catch (e) {
+              coverageReport = 'Coverage report not available';
+            }
+            
+            try {
+              diffCoverOutput = process.env.DIFF_COVER_OUTPUT || '';
+            } catch (e) {
+              diffCoverOutput = 'Diff coverage output not available';
+            }
+            
+            const emoji = status === 'passed' ? '✅' : '❌';
+            const statusText = status === 'passed' ? 'PASSED' : 'FAILED';
+            
+            let comment = `## ${emoji} Monitoring Service Coverage Report - ${statusText}\n\n`;
+            
+            if (isChanged && changedFiles) {
+              comment += `### 📊 Coverage Summary\n`;
+              comment += `- **Overall Project Coverage:** ${coverage}%\n`;
+              comment += `- **Coverage Threshold:** 80% for modified files\n`;
+              comment += `- **Modified Files:** ${changedFiles.split(' ').length} files\n\n`;
+              
+              comment += `### 📈 Result\n`;
+              if (status === 'passed') {
+                comment += `✅ **All modified files meet the 80% coverage requirement!**\n\n`;
+              } else {
+                comment += `❌ **Some modified files are below the 80% coverage requirement**\n\n`;
+              }
+              
+              comment += `<details>\n<summary>📋 View Full Coverage Report</summary>\n\n`;
+              comment += `\`\`\`\n${coverageReport}\n\`\`\`\n</details>\n\n`;
+              
+              if (status === 'failed') {
+                comment += `### 💡 How to Improve Coverage\n`;
+                comment += `- Add unit tests for monitoring models and views\n`;
+                comment += `- Test session tracking and activity logging\n`;
+                comment += `- Ensure all Celery tasks are tested\n`;
+                comment += `- Test health check endpoints and database retries\n`;
+                comment += `- Consider adding integration tests for monitoring workflows\n`;
+              } else {
+                comment += `### 🎉 Great job maintaining excellent test coverage in the monitoring service!`;
+              }
+            }
+            
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: comment
+            });
+
+      - name: Security check
+        continue-on-error: true
+        run: |
+          # Install security tools
+          pip install safety bandit
+
+          # Check for known security vulnerabilities using the new scan command
+          safety scan --json || safety check --json || echo "Security scan completed with warnings"
+
+          # Run bandit security linter
+          bandit -r . -x tests/ -f json || echo "Bandit scan completed with warnings"
+
+      - name: Build check
+        env:
+          SECRET_KEY: "test-secret-key-for-ci"
+          DEBUG: "True"
+          DB_NAME: "test_syncscope_monitoring"
+          DB_USER: "postgres"
+          DB_PASSWORD: "postgres"
+          DB_HOST: "localhost"
+          DB_PORT: "5432"
+          REDIS_URL: "redis://localhost:6379/0"
+          CELERY_BROKER_URL: "redis://localhost:6379/0"
+          CELERY_RESULT_BACKEND: "redis://localhost:6379/0"
+          ALLOWED_HOSTS: "localhost,127.0.0.1"
+          CORS_ALLOWED_ORIGINS: "http://localhost:3000"
+        run: |
+          # Check if Django can start
+          python manage.py check
+
+          # Check deployment configuration
+          python manage.py check --deploy || echo "Deployment check completed with warnings"
+
+          # Generate OpenAPI schema if spectacular is available
+          python manage.py spectacular --file schema.yml || echo "Schema generation skipped"
+
+      - name: Health check endpoints test
+        env:
+          SECRET_KEY: "test-secret-key-for-ci"
+          DB_NAME: "test_syncscope_monitoring"
+          DB_USER: "postgres"
+          DB_PASSWORD: "postgres"
+          DB_HOST: "localhost"
+          DB_PORT: "5432"
+          REDIS_URL: "redis://localhost:6379/0"
+        run: |
+          # Test health check endpoints
+          python manage.py test tests.test_views::*Health* || echo "Health check tests completed"
+
+      - name: Upload schema artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: openapi-schema-monitoring
+          path: schema.yml

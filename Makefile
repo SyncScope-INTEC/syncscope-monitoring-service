@@ -78,11 +78,25 @@ clean: ## Clean up temporary files
 setup-dev: install migrate ## Setup development environment
 	python manage.py collectstatic --noinput
 
-health-check: ## Check service health
+health-check: ## Check service health via HTTP
 	curl -f http://localhost:8002/monitoring/health/ || exit 1
+
+health-check-cli: ## Check service health via management command
+	python manage.py health_check --detailed
+
+cleanup-sessions: ## Clean up expired sessions
+	python manage.py cleanup_sessions --verbose
+
+generate-test-data: ## Generate test data for development
+	python manage.py generate_test_data --users 3 --sessions 10 --days 7
 
 api-docs: ## Open API documentation
 	@echo "API Documentation available at:"
 	@echo "  Swagger UI: http://localhost:8002/api/docs/"
 	@echo "  ReDoc: http://localhost:8002/api/redoc/"
 	@echo "  OpenAPI Schema: http://localhost:8002/api/schema/"
+	@echo "  Health Endpoints:"
+	@echo "    - Health: http://localhost:8002/monitoring/health/"
+	@echo "    - Liveness: http://localhost:8002/monitoring/health/live/"
+	@echo "    - Readiness: http://localhost:8002/monitoring/health/ready/"
+	@echo "    - Metrics: http://localhost:8002/monitoring/health/metrics/"
