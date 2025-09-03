@@ -19,10 +19,11 @@ DATABASES = {
     }
 }
 
-# Disable Redis caching for tests
+# Use memory cache for tests (real cache backend)
 CACHES = {
     "default": {
-        "BACKEND": "django.core.cache.backends.dummy.DummyCache",
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "unique-snowflake",
     }
 }
 
@@ -32,6 +33,14 @@ CELERY_TASK_EAGER_PROPAGATES = True
 
 # Disable rate limiting for tests
 RATELIMIT_ENABLE = False
+
+# Remove ratelimit from installed apps to avoid cache errors
+THIRD_PARTY_APPS = [app for app in THIRD_PARTY_APPS if app != "django_ratelimit"]
+INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
+
+# Override Redis settings to avoid connection errors in tests
+REDIS_URL = "redis://localhost:6379/0"
+REDIS_CACHE_URL = "redis://localhost:6379/1"
 
 # Simple logging for tests
 LOGGING = {
@@ -60,16 +69,8 @@ PASSWORD_HASHERS = [
 ]
 
 
-# Disable migrations for faster tests
-class DisableMigrations:
-    def __contains__(self, item):
-        return True
-
-    def __getitem__(self, item):
-        return None
-
-
-MIGRATION_MODULES = DisableMigrations()
+# Enable migrations for tests so tables are created
+# MIGRATION_MODULES = DisableMigrations()  # Disabled for proper test setup
 
 # Test-specific environment
 ENVIRONMENT = "testing"

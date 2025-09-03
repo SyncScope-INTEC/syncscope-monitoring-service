@@ -76,7 +76,7 @@ exclude_lines = [
 ]
 
 [tool.pytest.ini_options]
-DJANGO_SETTINGS_MODULE = "config.settings"
+DJANGO_SETTINGS_MODULE = "config.test_settings"
 addopts = "--tb=short --strict-markers"
 testpaths = ["tests"]
 markers = [

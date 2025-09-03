@@ -11,8 +11,8 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient, APITestCase
 
-from ..authentication import MonitoringUser
-from ..models import ActivityLog, CodeMetrics, DeveloperSession, GitEvent
+from apps.monitoring.authentication import MonitoringUser
+from apps.monitoring.models import ActivityLog, CodeMetrics, DeveloperSession, GitEvent
 
 
 class HealthCheckViewTest(TestCase):

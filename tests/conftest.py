@@ -2,6 +2,21 @@
 Pytest fixtures and test utilities for monitoring service.
 """
 
+import os
+import sys
+
+# Configure Django settings BEFORE importing anything Django-related
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
+
+import django
+from django.conf import settings
+
+# Ensure Django is properly configured
+if not settings.configured:
+    django.setup()
+else:
+    django.setup()
+
 import uuid
 from datetime import timedelta
 from unittest.mock import MagicMock, Mock

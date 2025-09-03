@@ -9,8 +9,8 @@ from unittest.mock import MagicMock, patch
 from django.test import TestCase
 from django.utils import timezone
 
-from ..models import ActivityLog, CodeMetrics, DeveloperSession, GitEvent
-from ..tasks import aggregate_user_metrics, cleanup_expired_sessions, health_check_task, process_session_analytics
+from apps.monitoring.models import ActivityLog, CodeMetrics, DeveloperSession, GitEvent
+from apps.monitoring.tasks import aggregate_user_metrics, cleanup_expired_sessions, health_check_task, process_session_analytics
 
 
 class ProcessSessionAnalyticsTest(TestCase):
@@ -167,7 +167,7 @@ class HealthCheckTaskTest(TestCase):
     """Tests for health_check_task."""
 
     @patch("apps.monitoring.tasks.RedisClient")
-    @patch("apps.monitoring.tasks.DatabaseManager")
+    @patch("apps.monitoring.db_utils.DatabaseManager")
     def test_health_check_success(self, mock_db_manager, mock_redis):
         """Test successful health check."""
         # Mock successful database connection
@@ -185,7 +185,7 @@ class HealthCheckTaskTest(TestCase):
         self.assertTrue(result["overall"])
 
     @patch("apps.monitoring.tasks.RedisClient")
-    @patch("apps.monitoring.tasks.DatabaseManager")
+    @patch("apps.monitoring.db_utils.DatabaseManager")
     def test_health_check_database_failure(self, mock_db_manager, mock_redis):
         """Test health check with database failure."""
         # Mock database connection failure
@@ -203,7 +203,7 @@ class HealthCheckTaskTest(TestCase):
         self.assertFalse(result["overall"])  # Overall should fail if any component fails
 
     @patch("apps.monitoring.tasks.RedisClient")
-    @patch("apps.monitoring.tasks.DatabaseManager")
+    @patch("apps.monitoring.db_utils.DatabaseManager")
     def test_health_check_redis_failure(self, mock_db_manager, mock_redis):
         """Test health check with Redis failure."""
         # Mock successful database connection
@@ -221,7 +221,7 @@ class HealthCheckTaskTest(TestCase):
         self.assertFalse(result["overall"])  # Overall should fail if any component fails
 
     @patch("apps.monitoring.tasks.RedisClient")
-    @patch("apps.monitoring.tasks.DatabaseManager")
+    @patch("apps.monitoring.db_utils.DatabaseManager")
     def test_health_check_exception(self, mock_db_manager, mock_redis):
         """Test health check with unexpected exception."""
         # Mock database manager raising exception
