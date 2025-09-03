@@ -52,7 +52,7 @@ INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
 MIDDLEWARE = [
     "apps.monitoring.middleware.SecurityHeadersMiddleware",
-    "apps.monitoring.middleware.CORSPreflightMiddleware", 
+    "apps.monitoring.middleware.CORSPreflightMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
@@ -199,26 +199,26 @@ CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_ALL_ORIGINS = config("CORS_ALLOW_ALL_ORIGINS", default=False, cast=bool) and DEBUG
 CORS_ALLOWED_ORIGIN_REGEXES = [
     r"^https://.*\.railway\.app$",  # Railway deployment domains
-    r"^http://localhost:\d+$",      # Local development
-    r"^http://127\.0\.0\.1:\d+$",   # Local development
+    r"^http://localhost:\d+$",  # Local development
+    r"^http://127\.0\.0\.1:\d+$",  # Local development
 ]
 CORS_ALLOW_HEADERS = [
-    'accept',
-    'accept-encoding',
-    'authorization',
-    'content-type',
-    'dnt',
-    'origin',
-    'user-agent',
-    'x-csrftoken',
-    'x-requested-with',
-    'x-service-token',  # For service-to-service communication
+    "accept",
+    "accept-encoding",
+    "authorization",
+    "content-type",
+    "dnt",
+    "origin",
+    "user-agent",
+    "x-csrftoken",
+    "x-requested-with",
+    "x-service-token",  # For service-to-service communication
 ]
 CORS_EXPOSE_HEADERS = [
-    'content-length',
-    'x-ratelimit-remaining',
-    'x-ratelimit-limit',
-    'x-ratelimit-reset',
+    "content-length",
+    "x-ratelimit-remaining",
+    "x-ratelimit-limit",
+    "x-ratelimit-reset",
 ]
 
 # CSRF settings
@@ -444,16 +444,16 @@ CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = TIME_ZONE
 CELERY_BEAT_SCHEDULE = {
-    'cleanup-expired-sessions': {
-        'task': 'apps.monitoring.tasks.cleanup_expired_sessions',
-        'schedule': 3600.0,  # Every hour
+    "cleanup-expired-sessions": {
+        "task": "apps.monitoring.tasks.cleanup_expired_sessions",
+        "schedule": 3600.0,  # Every hour
     },
-    'send-analytics-to-service': {
-        'task': 'apps.monitoring.tasks.send_analytics_to_service',
-        'schedule': 86400.0,  # Every 24 hours
+    "send-analytics-to-service": {
+        "task": "apps.monitoring.tasks.send_analytics_to_service",
+        "schedule": 86400.0,  # Every 24 hours
     },
-    'health-check': {
-        'task': 'apps.monitoring.tasks.health_check_task',
-        'schedule': 300.0,  # Every 5 minutes
+    "health-check": {
+        "task": "apps.monitoring.tasks.health_check_task",
+        "schedule": 300.0,  # Every 5 minutes
     },
 }

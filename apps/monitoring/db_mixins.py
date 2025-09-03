@@ -2,16 +2,16 @@
 Database mixins with retry logic for models and views
 """
 
-from django.db import models
 from django.contrib.auth.models import BaseUserManager
+from django.db import models
 
 from config.database_retry import (
-    RetryableQuerySet, 
-    atomic_with_retry, 
-    database_retry, 
-    DatabaseHealthCheck, 
+    DatabaseHealthCheck,
+    RetryableQuerySet,
+    atomic_with_retry,
     close_old_connections,
-    is_retryable_error
+    database_retry,
+    is_retryable_error,
 )
 
 

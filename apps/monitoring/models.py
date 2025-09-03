@@ -1,8 +1,11 @@
+import uuid
+
 from django.db import models
 from django.utils import timezone
-import uuid
-from .db_mixins import RetryableModelMixin
+
 from config.database_retry import atomic_with_retry
+
+from .db_mixins import RetryableModelMixin
 
 
 class DeveloperSession(RetryableModelMixin, models.Model):
@@ -10,6 +13,7 @@ class DeveloperSession(RetryableModelMixin, models.Model):
     Model representing a developer monitoring session.
     Maps to the monitoring.developer_sessions table.
     """
+
     session_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user_id = models.IntegerField(help_text="Reference to auth.users.user_id")
     session_start = models.DateTimeField(default=timezone.now)
@@ -27,12 +31,12 @@ class DeveloperSession(RetryableModelMixin, models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        db_table = 'monitoring.developer_sessions'
-        ordering = ['-created_at']
+        db_table = "monitoring.developer_sessions"
+        ordering = ["-created_at"]
         indexes = [
-            models.Index(fields=['user_id']),
-            models.Index(fields=['session_start']),
-            models.Index(fields=['created_at']),
+            models.Index(fields=["user_id"]),
+            models.Index(fields=["session_start"]),
+            models.Index(fields=["created_at"]),
         ]
 
     def __str__(self):
@@ -55,23 +59,20 @@ class DeveloperSession(RetryableModelMixin, models.Model):
         if not self.session_end:
             self.session_end = timezone.now()
             self.save()
-    
+
     @classmethod
     @atomic_with_retry()
     def cleanup_expired_sessions(cls, hours=24):
         """Clean up sessions that have been active for too long."""
         cutoff_time = timezone.now() - timezone.timedelta(hours=hours)
-        expired_sessions = cls.objects.filter(
-            session_start__lt=cutoff_time,
-            session_end__isnull=True
-        )
-        
+        expired_sessions = cls.objects.filter(session_start__lt=cutoff_time, session_end__isnull=True)
+
         count = 0
         for session in expired_sessions:
             session.session_end = timezone.now()
             session.save()
             count += 1
-        
+
         return count
 
 
@@ -80,30 +81,28 @@ class ActivityLog(RetryableModelMixin, models.Model):
     Model representing developer activity logs.
     Maps to the monitoring.activity_logs table.
     """
+
     ACTIVITY_TYPE_CHOICES = [
-        ('file_open', 'File Open'),
-        ('file_edit', 'File Edit'),
-        ('file_save', 'File Save'),
-        ('file_close', 'File Close'),
-        ('debug_start', 'Debug Start'),
-        ('debug_stop', 'Debug Stop'),
-        ('build_start', 'Build Start'),
-        ('build_complete', 'Build Complete'),
-        ('test_run', 'Test Run'),
-        ('git_commit', 'Git Commit'),
-        ('git_push', 'Git Push'),
-        ('git_pull', 'Git Pull'),
-        ('ide_focus', 'IDE Focus'),
-        ('ide_blur', 'IDE Blur'),
-        ('other', 'Other'),
+        ("file_open", "File Open"),
+        ("file_edit", "File Edit"),
+        ("file_save", "File Save"),
+        ("file_close", "File Close"),
+        ("debug_start", "Debug Start"),
+        ("debug_stop", "Debug Stop"),
+        ("build_start", "Build Start"),
+        ("build_complete", "Build Complete"),
+        ("test_run", "Test Run"),
+        ("git_commit", "Git Commit"),
+        ("git_push", "Git Push"),
+        ("git_pull", "Git Pull"),
+        ("ide_focus", "IDE Focus"),
+        ("ide_blur", "IDE Blur"),
+        ("other", "Other"),
     ]
 
     log_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     session = models.ForeignKey(
-        DeveloperSession, 
-        on_delete=models.CASCADE, 
-        related_name='activity_logs',
-        db_column='session_id'
+        DeveloperSession, on_delete=models.CASCADE, related_name="activity_logs", db_column="session_id"
     )
     activity_type = models.CharField(max_length=50, choices=ACTIVITY_TYPE_CHOICES)
     timestamp = models.DateTimeField(default=timezone.now)
@@ -113,13 +112,13 @@ class ActivityLog(RetryableModelMixin, models.Model):
     created_at = models.DateTimeField(default=timezone.now)
 
     class Meta:
-        db_table = 'monitoring.activity_logs'
-        ordering = ['-timestamp']
+        db_table = "monitoring.activity_logs"
+        ordering = ["-timestamp"]
         indexes = [
-            models.Index(fields=['session', 'timestamp']),
-            models.Index(fields=['activity_type']),
-            models.Index(fields=['timestamp']),
-            models.Index(fields=['file_extension']),
+            models.Index(fields=["session", "timestamp"]),
+            models.Index(fields=["activity_type"]),
+            models.Index(fields=["timestamp"]),
+            models.Index(fields=["file_extension"]),
         ]
 
     def __str__(self):
@@ -129,8 +128,9 @@ class ActivityLog(RetryableModelMixin, models.Model):
         """Extract file extension from file_path if provided."""
         if self.file_path and not self.file_extension:
             import os
+
             _, ext = os.path.splitext(self.file_path)
-            self.file_extension = ext.lstrip('.')
+            self.file_extension = ext.lstrip(".")
         super().save(*args, **kwargs)
 
 
@@ -139,12 +139,10 @@ class CodeMetrics(RetryableModelMixin, models.Model):
     Model representing code metrics for files.
     Maps to the monitoring.code_metrics table.
     """
+
     metrics_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     session = models.ForeignKey(
-        DeveloperSession, 
-        on_delete=models.CASCADE, 
-        related_name='code_metrics',
-        db_column='session_id'
+        DeveloperSession, on_delete=models.CASCADE, related_name="code_metrics", db_column="session_id"
     )
     file_path = models.TextField()
     file_extension = models.CharField(max_length=20)
@@ -162,13 +160,13 @@ class CodeMetrics(RetryableModelMixin, models.Model):
     created_at = models.DateTimeField(default=timezone.now)
 
     class Meta:
-        db_table = 'monitoring.code_metrics'
-        ordering = ['-calculated_at']
+        db_table = "monitoring.code_metrics"
+        ordering = ["-calculated_at"]
         indexes = [
-            models.Index(fields=['session', 'file_path']),
-            models.Index(fields=['file_extension']),
-            models.Index(fields=['calculated_at']),
-            models.Index(fields=['lines_of_code']),
+            models.Index(fields=["session", "file_path"]),
+            models.Index(fields=["file_extension"]),
+            models.Index(fields=["calculated_at"]),
+            models.Index(fields=["lines_of_code"]),
         ]
 
     def __str__(self):
@@ -182,8 +180,9 @@ class CodeMetrics(RetryableModelMixin, models.Model):
     def save(self, *args, **kwargs):
         """Extract file extension from file_path."""
         import os
+
         _, ext = os.path.splitext(self.file_path)
-        self.file_extension = ext.lstrip('.')
+        self.file_extension = ext.lstrip(".")
         super().save(*args, **kwargs)
 
 
@@ -192,30 +191,26 @@ class GitEvent(RetryableModelMixin, models.Model):
     Model representing git events.
     Maps to the monitoring.git_events table.
     """
+
     EVENT_TYPE_CHOICES = [
-        ('commit', 'Commit'),
-        ('push', 'Push'),
-        ('pull', 'Pull'),
-        ('fetch', 'Fetch'),
-        ('merge', 'Merge'),
-        ('rebase', 'Rebase'),
-        ('checkout', 'Checkout'),
-        ('branch_create', 'Branch Create'),
-        ('branch_delete', 'Branch Delete'),
-        ('tag_create', 'Tag Create'),
-        ('tag_delete', 'Tag Delete'),
-        ('stash', 'Stash'),
-        ('reset', 'Reset'),
-        ('cherry_pick', 'Cherry Pick'),
+        ("commit", "Commit"),
+        ("push", "Push"),
+        ("pull", "Pull"),
+        ("fetch", "Fetch"),
+        ("merge", "Merge"),
+        ("rebase", "Rebase"),
+        ("checkout", "Checkout"),
+        ("branch_create", "Branch Create"),
+        ("branch_delete", "Branch Delete"),
+        ("tag_create", "Tag Create"),
+        ("tag_delete", "Tag Delete"),
+        ("stash", "Stash"),
+        ("reset", "Reset"),
+        ("cherry_pick", "Cherry Pick"),
     ]
 
     event_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    session = models.ForeignKey(
-        DeveloperSession, 
-        on_delete=models.CASCADE, 
-        related_name='git_events',
-        db_column='session_id'
-    )
+    session = models.ForeignKey(DeveloperSession, on_delete=models.CASCADE, related_name="git_events", db_column="session_id")
     event_type = models.CharField(max_length=50, choices=EVENT_TYPE_CHOICES)
     timestamp = models.DateTimeField(default=timezone.now)
     commit_hash = models.CharField(max_length=40, null=True, blank=True)
@@ -231,14 +226,14 @@ class GitEvent(RetryableModelMixin, models.Model):
     created_at = models.DateTimeField(default=timezone.now)
 
     class Meta:
-        db_table = 'monitoring.git_events'
-        ordering = ['-timestamp']
+        db_table = "monitoring.git_events"
+        ordering = ["-timestamp"]
         indexes = [
-            models.Index(fields=['session', 'timestamp']),
-            models.Index(fields=['event_type']),
-            models.Index(fields=['timestamp']),
-            models.Index(fields=['commit_hash']),
-            models.Index(fields=['branch_name']),
+            models.Index(fields=["session", "timestamp"]),
+            models.Index(fields=["event_type"]),
+            models.Index(fields=["timestamp"]),
+            models.Index(fields=["commit_hash"]),
+            models.Index(fields=["branch_name"]),
         ]
 
     def __str__(self):

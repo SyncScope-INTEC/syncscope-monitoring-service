@@ -1,10 +1,18 @@
 from rest_framework import serializers
-from .models import DeveloperSession, ActivityLog, CodeMetrics, GitEvent
+
+from .models import ActivityLog, CodeMetrics, DeveloperSession, GitEvent
 from .validators import (
-    FilePathValidator, GitHashValidator, GitBranchValidator, IDENameValidator,
-    SessionMetadataValidator, ActivityTypeValidator, GitEventTypeValidator,
-    FileExtensionValidator, validate_positive_integer, validate_reasonable_line_count,
-    validate_complexity_score
+    ActivityTypeValidator,
+    FileExtensionValidator,
+    FilePathValidator,
+    GitBranchValidator,
+    GitEventTypeValidator,
+    GitHashValidator,
+    IDENameValidator,
+    SessionMetadataValidator,
+    validate_complexity_score,
+    validate_positive_integer,
+    validate_reasonable_line_count,
 )
 
 
@@ -12,12 +20,21 @@ class DeveloperSessionSerializer(serializers.ModelSerializer):
     class Meta:
         model = DeveloperSession
         fields = [
-            'session_id', 'user_id', 'session_start', 'session_end', 
-            'session_duration_minutes', 'ide_name', 'ide_version', 
-            'project_path', 'git_repository_url', 'git_branch', 
-            'git_commit_hash', 'operating_system', 'session_metadata'
+            "session_id",
+            "user_id",
+            "session_start",
+            "session_end",
+            "session_duration_minutes",
+            "ide_name",
+            "ide_version",
+            "project_path",
+            "git_repository_url",
+            "git_branch",
+            "git_commit_hash",
+            "operating_system",
+            "session_metadata",
         ]
-        read_only_fields = ['session_id', 'session_duration_minutes', 'created_at', 'updated_at']
+        read_only_fields = ["session_id", "session_duration_minutes", "created_at", "updated_at"]
 
 
 class SessionStartSerializer(serializers.ModelSerializer):
@@ -26,15 +43,21 @@ class SessionStartSerializer(serializers.ModelSerializer):
     git_branch = serializers.CharField(required=False, allow_blank=True, validators=[GitBranchValidator()])
     git_commit_hash = serializers.CharField(required=False, allow_blank=True, validators=[GitHashValidator()])
     session_metadata = serializers.JSONField(required=False, validators=[SessionMetadataValidator()])
-    
+
     class Meta:
         model = DeveloperSession
         fields = [
-            'user_id', 'ide_name', 'ide_version', 'project_path',
-            'git_repository_url', 'git_branch', 'git_commit_hash',
-            'operating_system', 'session_metadata'
+            "user_id",
+            "ide_name",
+            "ide_version",
+            "project_path",
+            "git_repository_url",
+            "git_branch",
+            "git_commit_hash",
+            "operating_system",
+            "session_metadata",
         ]
-    
+
     def validate_user_id(self, value):
         if value <= 0:
             raise serializers.ValidationError("User ID must be a positive integer")
@@ -50,14 +73,11 @@ class ActivityLogSerializer(serializers.ModelSerializer):
     activity_type = serializers.CharField(validators=[ActivityTypeValidator()])
     file_path = serializers.CharField(required=False, allow_blank=True, validators=[FilePathValidator()])
     activity_metadata = serializers.JSONField(required=False, validators=[SessionMetadataValidator()])
-    
+
     class Meta:
         model = ActivityLog
-        fields = [
-            'log_id', 'session', 'activity_type', 'timestamp',
-            'file_path', 'file_extension', 'activity_metadata'
-        ]
-        read_only_fields = ['log_id', 'file_extension', 'created_at']
+        fields = ["log_id", "session", "activity_type", "timestamp", "file_path", "file_extension", "activity_metadata"]
+        read_only_fields = ["log_id", "file_extension", "created_at"]
 
 
 class CodeMetricsSerializer(serializers.ModelSerializer):
@@ -67,23 +87,40 @@ class CodeMetricsSerializer(serializers.ModelSerializer):
     lines_added = serializers.IntegerField(validators=[validate_positive_integer, validate_reasonable_line_count])
     lines_deleted = serializers.IntegerField(validators=[validate_positive_integer, validate_reasonable_line_count])
     lines_modified = serializers.IntegerField(validators=[validate_positive_integer, validate_reasonable_line_count])
-    complexity_score = serializers.DecimalField(max_digits=10, decimal_places=2, required=False, allow_null=True, validators=[validate_complexity_score])
+    complexity_score = serializers.DecimalField(
+        max_digits=10, decimal_places=2, required=False, allow_null=True, validators=[validate_complexity_score]
+    )
     function_count = serializers.IntegerField(required=False, allow_null=True, validators=[validate_positive_integer])
     class_count = serializers.IntegerField(required=False, allow_null=True, validators=[validate_positive_integer])
-    comment_lines = serializers.IntegerField(required=False, allow_null=True, validators=[validate_positive_integer, validate_reasonable_line_count])
-    blank_lines = serializers.IntegerField(required=False, allow_null=True, validators=[validate_positive_integer, validate_reasonable_line_count])
+    comment_lines = serializers.IntegerField(
+        required=False, allow_null=True, validators=[validate_positive_integer, validate_reasonable_line_count]
+    )
+    blank_lines = serializers.IntegerField(
+        required=False, allow_null=True, validators=[validate_positive_integer, validate_reasonable_line_count]
+    )
     metrics_metadata = serializers.JSONField(required=False, validators=[SessionMetadataValidator()])
 
     class Meta:
         model = CodeMetrics
         fields = [
-            'metrics_id', 'session', 'file_path', 'file_extension',
-            'lines_of_code', 'lines_added', 'lines_deleted', 'lines_modified',
-            'complexity_score', 'function_count', 'class_count',
-            'comment_lines', 'blank_lines', 'metrics_metadata', 
-            'calculated_at', 'total_changes'
+            "metrics_id",
+            "session",
+            "file_path",
+            "file_extension",
+            "lines_of_code",
+            "lines_added",
+            "lines_deleted",
+            "lines_modified",
+            "complexity_score",
+            "function_count",
+            "class_count",
+            "comment_lines",
+            "blank_lines",
+            "metrics_metadata",
+            "calculated_at",
+            "total_changes",
         ]
-        read_only_fields = ['metrics_id', 'file_extension', 'total_changes', 'created_at']
+        read_only_fields = ["metrics_id", "file_extension", "total_changes", "created_at"]
 
 
 class GitEventSerializer(serializers.ModelSerializer):
@@ -92,23 +129,39 @@ class GitEventSerializer(serializers.ModelSerializer):
     commit_hash = serializers.CharField(required=False, allow_blank=True, validators=[GitHashValidator()])
     branch_name = serializers.CharField(required=False, allow_blank=True, validators=[GitBranchValidator()])
     files_changed = serializers.IntegerField(required=False, allow_null=True, validators=[validate_positive_integer])
-    insertions = serializers.IntegerField(required=False, allow_null=True, validators=[validate_positive_integer, validate_reasonable_line_count])
-    deletions = serializers.IntegerField(required=False, allow_null=True, validators=[validate_positive_integer, validate_reasonable_line_count])
+    insertions = serializers.IntegerField(
+        required=False, allow_null=True, validators=[validate_positive_integer, validate_reasonable_line_count]
+    )
+    deletions = serializers.IntegerField(
+        required=False, allow_null=True, validators=[validate_positive_integer, validate_reasonable_line_count]
+    )
     git_metadata = serializers.JSONField(required=False, validators=[SessionMetadataValidator()])
 
     class Meta:
         model = GitEvent
         fields = [
-            'event_id', 'session', 'event_type', 'timestamp',
-            'commit_hash', 'commit_message', 'branch_name', 'remote_name',
-            'files_changed', 'insertions', 'deletions', 'author_name',
-            'author_email', 'git_metadata', 'net_changes'
+            "event_id",
+            "session",
+            "event_type",
+            "timestamp",
+            "commit_hash",
+            "commit_message",
+            "branch_name",
+            "remote_name",
+            "files_changed",
+            "insertions",
+            "deletions",
+            "author_name",
+            "author_email",
+            "git_metadata",
+            "net_changes",
         ]
-        read_only_fields = ['event_id', 'net_changes', 'created_at']
-    
+        read_only_fields = ["event_id", "net_changes", "created_at"]
+
     def validate_author_email(self, value):
         if value:
             from django.core.validators import validate_email
+
             validate_email(value)
         return value
 
