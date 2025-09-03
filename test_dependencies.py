@@ -12,45 +12,45 @@ def test_imports():
     try:
         # Django and related packages
         import django
-        print(f"✅ Django {django.get_version()}")
+        print(f"[OK] Django {django.get_version()}")
         
         import rest_framework
-        print("✅ Django REST Framework")
+        print("[OK] Django REST Framework")
         
         # Celery
         import celery
-        print(f"✅ Celery {celery.__version__}")
+        print(f"[OK] Celery {celery.__version__}")
         
         import django_celery_beat
-        print("✅ Django Celery Beat")
+        print("[OK] Django Celery Beat")
         
         # Database
         import psycopg2
-        print("✅ psycopg2")
+        print("[OK] psycopg2")
         
         # Redis
         import redis
-        print("✅ Redis")
+        print("[OK] Redis")
         
         # Testing
         import pytest
-        print("✅ pytest")
+        print("[OK] pytest")
         
         import coverage
-        print("✅ coverage")
+        print("[OK] coverage")
         
         # Utilities
         import decouple
-        print("✅ python-decouple")
+        print("[OK] python-decouple")
         
         import drf_spectacular
-        print("✅ drf-spectacular")
+        print("[OK] drf-spectacular")
         
-        print("\n🎉 All dependencies imported successfully!")
+        print("\n[SUCCESS] All dependencies imported successfully!")
         return True
         
     except ImportError as e:
-        print(f"❌ Import error: {e}")
+        print(f"[ERROR] Import error: {e}")
         return False
 
 def test_django_compatibility():
@@ -87,21 +87,21 @@ def test_django_compatibility():
         
         # Test Celery Beat models
         from django_celery_beat.models import PeriodicTask
-        print("✅ Django Celery Beat models accessible")
+        print("[OK] Django Celery Beat models accessible")
         
         # Test REST Framework
         from rest_framework import status
-        print("✅ Django REST Framework working")
+        print("[OK] Django REST Framework working")
         
-        print("✅ Django compatibility test passed!")
+        print("[SUCCESS] Django compatibility test passed!")
         return True
         
     except Exception as e:
-        print(f"❌ Django compatibility error: {e}")
+        print(f"[ERROR] Django compatibility error: {e}")
         return False
 
 if __name__ == "__main__":
-    print("🧪 SyncScope Monitoring Service - Dependency Test")
+    print("Testing SyncScope Monitoring Service Dependencies")
     print("=" * 50)
     
     success = True
@@ -110,8 +110,8 @@ if __name__ == "__main__":
     success &= test_django_compatibility()
     
     if success:
-        print("\n🎉 All dependency tests passed!")
+        print("\n[SUCCESS] All dependency tests passed!")
         sys.exit(0)
     else:
-        print("\n❌ Some dependency tests failed!")
+        print("\n[ERROR] Some dependency tests failed!")
         sys.exit(1)

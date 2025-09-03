@@ -112,8 +112,13 @@ jobs:
             make lint
           else
             # Install linting tools if not in requirements
-            pip install ruff
-            ruff check .
+            pip install black isort
+            
+            # Check code formatting
+            black --check --diff .
+            
+            # Check import sorting
+            isort --check-only --diff .
           fi
 
       - name: Get changed files (PR only)
