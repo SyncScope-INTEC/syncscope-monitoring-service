@@ -27,7 +27,7 @@ class FilePathValidator:
         dangerous_patterns = [
             r"\.\.",  # Directory traversal
             r'[<>"|?*]',  # Windows invalid characters (excluding : to allow drive letters)
-            r'(?<!^[A-Za-z]):',  # Colon not preceded by drive letter at start
+            r"(?<!^[A-Za-z]):",  # Colon not preceded by drive letter at start
             r"^[/\\]*(etc|proc|sys|dev)",  # System directories (Unix)
             r"^[A-Za-z]:[/\\]*(?:Windows|System32|Program Files)",  # System directories (Windows)
         ]

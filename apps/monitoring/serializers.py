@@ -168,6 +168,7 @@ class GitEventSerializer(serializers.ModelSerializer):
 
 class BulkActivityItemSerializer(serializers.ModelSerializer):
     """Serializer for individual activities in bulk operations (without session field)."""
+
     activity_type = serializers.CharField(validators=[ActivityTypeValidator()])
     file_path = serializers.CharField(required=False, allow_blank=True, validators=[FilePathValidator()])
     activity_metadata = serializers.JSONField(required=False, validators=[SessionMetadataValidator()])
