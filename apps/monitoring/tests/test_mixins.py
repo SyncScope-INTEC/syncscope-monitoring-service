@@ -318,12 +318,12 @@ class PerformanceMonitoringMixinTest(TestCase):
         self.assertIn("X-Response-Time", response)
         self.assertIn("X-Request-ID", response)
 
-    @patch("apps.monitoring.mixins.uuid")
-    def test_uuid_generation_mocked(self, mock_uuid):
+    @patch("uuid.uuid4")
+    def test_uuid_generation_mocked(self, mock_uuid4):
         """Test UUID generation with mocked uuid."""
         mock_uuid_obj = Mock()
         mock_uuid_obj.__str__ = Mock(return_value="12345678-1234-5678-9abc-123456789abc")
-        mock_uuid.uuid4.return_value = mock_uuid_obj
+        mock_uuid4.return_value = mock_uuid_obj
 
         request = self.factory.get("/test/")
 
@@ -331,7 +331,7 @@ class PerformanceMonitoringMixinTest(TestCase):
             self.view.dispatch(request)
 
             # Check that UUID was called and sliced correctly
-            mock_uuid.uuid4.assert_called_once()
+            mock_uuid4.assert_called_once()
             self.assertEqual(request.request_id, "12345678")
 
     def test_response_time_header_format(self):

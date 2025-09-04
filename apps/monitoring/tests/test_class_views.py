@@ -32,10 +32,13 @@ class BaseMonitoringAPIViewTest(APITestCase):
         """Test that BaseMonitoringAPIView inherits from correct mixins."""
         view = BaseMonitoringAPIView()
 
-        # Check that it has methods from mixins
-        self.assertTrue(hasattr(view, "dispatch"))  # From PerformanceMonitoringMixin
-        # ServerlessViewMixin may not have get_db_connection method
-        self.assertTrue(hasattr(view, "get") or hasattr(view, "post") or hasattr(view, "put"))  # Has HTTP methods from APIView
+        # Check that it has methods from mixins and base classes
+        self.assertTrue(hasattr(view, "dispatch"))  # From PerformanceMonitoringMixin or APIView
+        # Check MRO to verify inheritance chain
+        mro_classes = [cls.__name__ for cls in BaseMonitoringAPIView.__mro__]
+        self.assertIn("ServerlessViewMixin", mro_classes)
+        self.assertIn("PerformanceMonitoringMixin", mro_classes)
+        self.assertIn("APIView", mro_classes)
 
 
 class SessionStatsViewTest(APITestCase):
@@ -234,7 +237,7 @@ class HealthMetricsViewTest(APITestCase):
         self.assertIn("django_version", data["process"])
 
     @patch("apps.monitoring.db_mixins.DatabaseHealthCheck.is_healthy")
-    @patch("apps.monitoring.class_views.DatabaseHealthCheck.is_healthy")
+    @patch("config.database_retry.DatabaseHealthCheck.is_healthy")
     @patch("apps.monitoring.class_views.CacheHealthCheck.is_healthy")
     def test_get_health_metrics_database_unhealthy(self, mock_cache_healthy, mock_db_healthy_view, mock_db_healthy_mixin):
         """Test health metrics when database is unhealthy."""
@@ -268,7 +271,7 @@ class HealthMetricsViewTest(APITestCase):
         self.assertEqual(data["redis"]["status"], "unhealthy")
 
     @patch("apps.monitoring.db_mixins.DatabaseHealthCheck.is_healthy")
-    @patch("apps.monitoring.class_views.DatabaseHealthCheck.is_healthy")
+    @patch("config.database_retry.DatabaseHealthCheck.is_healthy")
     @patch("apps.monitoring.class_views.CacheHealthCheck.is_healthy")
     def test_get_health_metrics_both_unhealthy(self, mock_cache_healthy, mock_db_healthy_view, mock_db_healthy_mixin):
         """Test health metrics when both database and redis are unhealthy."""
@@ -286,7 +289,7 @@ class HealthMetricsViewTest(APITestCase):
         self.assertEqual(data["redis"]["status"], "unhealthy")
 
     @patch("apps.monitoring.db_mixins.DatabaseHealthCheck.is_healthy")
-    @patch("apps.monitoring.class_views.DatabaseHealthCheck.is_healthy")
+    @patch("config.database_retry.DatabaseHealthCheck.is_healthy")
     @patch("apps.monitoring.class_views.CacheHealthCheck.is_healthy")
     def test_get_health_metrics_database_exception(self, mock_cache_healthy, mock_db_healthy_view, mock_db_healthy_mixin):
         """Test health metrics when database check raises exception."""
