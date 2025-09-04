@@ -18,7 +18,7 @@ test-verbose: ## Run tests with verbose output
 	python -m pytest -v
 
 coverage: ## Run tests with coverage report
-	python -m pytest --cov=apps.monitoring --cov-report=html --cov-report=term
+	python -m pytest --cov=apps.monitoring --cov-report=html --cov-report=term --cov-report=xml
 
 lint: ## Run linting with black and isort
 	black --check --diff .
