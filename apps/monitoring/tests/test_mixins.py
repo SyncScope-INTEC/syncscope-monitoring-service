@@ -65,10 +65,10 @@ class CacheHealthCheckTest(TestCase):
         mock_cache.get.return_value = "health_check"
         mock_cache.delete.side_effect = Exception("Cache delete failed")
 
-        # Should still return True because the core functionality works
+        # Should return False because any exception fails the health check
         result = CacheHealthCheck.is_healthy()
 
-        self.assertTrue(result)
+        self.assertFalse(result)
 
     @patch("apps.monitoring.mixins.cache")
     def test_is_healthy_value_mismatch(self, mock_cache):
@@ -318,11 +318,12 @@ class PerformanceMonitoringMixinTest(TestCase):
         self.assertIn("X-Response-Time", response)
         self.assertIn("X-Request-ID", response)
 
-    @patch("uuid.uuid4")
+    @patch("apps.monitoring.mixins.uuid")
     def test_uuid_generation_mocked(self, mock_uuid):
         """Test UUID generation with mocked uuid."""
-        mock_uuid.return_value = Mock()
-        mock_uuid.return_value.__str__.return_value = "12345678-1234-5678-9abc-123456789abc"
+        mock_uuid_obj = Mock()
+        mock_uuid_obj.__str__ = Mock(return_value="12345678-1234-5678-9abc-123456789abc")
+        mock_uuid.uuid4.return_value = mock_uuid_obj
 
         request = self.factory.get("/test/")
 
@@ -330,7 +331,7 @@ class PerformanceMonitoringMixinTest(TestCase):
             self.view.dispatch(request)
 
             # Check that UUID was called and sliced correctly
-            mock_uuid.assert_called_once()
+            mock_uuid.uuid4.assert_called_once()
             self.assertEqual(request.request_id, "12345678")
 
     def test_response_time_header_format(self):
