@@ -1,13 +1,13 @@
 from django.urls import path
 
-from . import views
+from . import health, views
 from .class_views import HealthMetricsView, SessionStatsView
 
 urlpatterns = [
     # Health endpoints
-    path("health/", views.health_check, name="health_check"),
-    path("health/live/", views.liveness_check, name="liveness_check"),
-    path("health/ready/", views.readiness_check, name="readiness_check"),
+    path("health/", health.health_check, name="health_check"),
+    path("health/live/", health.liveness_check, name="liveness_check"),
+    path("health/ready/", health.readiness_check, name="readiness_check"),
     path("health/metrics/", HealthMetricsView.as_view(), name="health_metrics"),
     # Session endpoints
     path("sessions/start/", views.start_session, name="start_session"),
