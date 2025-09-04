@@ -11,11 +11,11 @@ click-didyoumean==0.3.1
 click-plugins==1.1.1.2
 click-repl==0.3.0
 colorama==0.4.6
-coverage==7.10.5
-cron_descriptor==2.0.5
+coverage==7.10.6
+cron_descriptor==2.0.6
 dj-database-url==3.0.1
 Django==5.2.5
-django-celery-beat==2.8.0
+django-celery-beat==2.8.1
 django-cors-headers==4.7.0
 django-extensions==4.1
 django-ratelimit==4.1.0
@@ -35,7 +35,7 @@ jsonschema-specifications==2025.4.1
 kombu==5.5.4
 packaging==25.0
 pluggy==1.6.0
-prompt_toolkit==3.0.51
+prompt_toolkit==3.0.52
 psutil==5.9.8
 psycopg2-binary==2.9.10
 Pygments==2.19.2
