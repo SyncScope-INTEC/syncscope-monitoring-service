@@ -178,9 +178,9 @@ STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 # Default primary key field type
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# Authentication backends for admin integration with auth service
+# Authentication backends for admin integration with shared database
 AUTHENTICATION_BACKENDS = [
-    "apps.monitoring.auth_backends.CachedAuthServiceBackend",
+    "apps.monitoring.database_auth_backend.CachedSharedDatabaseAuthBackend",
     "django.contrib.auth.backends.ModelBackend",  # Fallback for local users
 ]
 

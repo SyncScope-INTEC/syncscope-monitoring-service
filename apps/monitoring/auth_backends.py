@@ -22,18 +22,26 @@ class AuthServiceBackend(BaseBackend):
         """
         Authenticate user against the auth service.
         """
+        logger.info(f"AuthServiceBackend: Attempting authentication for user: {username}")
+        
         if username is None or password is None:
+            logger.warning("AuthServiceBackend: Username or password is None")
             return None
 
         # Try to authenticate with the auth service
         try:
+            logger.info(f"AuthServiceBackend: Calling auth service for user: {username}")
             auth_response = self._authenticate_with_auth_service(username, password)
             if auth_response:
+                logger.info(f"AuthServiceBackend: Auth service responded successfully for user: {username}")
                 # Create or get the local user for Django admin
                 user = self._get_or_create_local_user(auth_response)
+                logger.info(f"AuthServiceBackend: Created/retrieved local user: {user}")
                 return user
+            else:
+                logger.warning(f"AuthServiceBackend: Auth service authentication failed for user: {username}")
         except Exception as e:
-            logger.error(f"Authentication error with auth service: {str(e)}")
+            logger.error(f"Authentication error with auth service for user {username}: {str(e)}", exc_info=True)
 
         return None
 
@@ -53,22 +61,32 @@ class AuthServiceBackend(BaseBackend):
         auth_service_url = getattr(settings, "AUTH_SERVICE_URL", "http://localhost:8000")
         login_url = f"{auth_service_url}/auth/login"
 
+        logger.info(f"AuthServiceBackend: Using auth service URL: {auth_service_url}")
+        logger.info(f"AuthServiceBackend: Calling login URL: {login_url}")
+
         payload = {"email": username, "password": password}  # Auth service uses email as username
 
         try:
+            logger.info(f"AuthServiceBackend: Sending POST request to auth service")
             response = requests.post(login_url, json=payload, headers={"Content-Type": "application/json"}, timeout=10)
 
+            logger.info(f"AuthServiceBackend: Auth service response status: {response.status_code}")
+            
             if response.status_code == 200:
                 data = response.json()
+                logger.info(f"AuthServiceBackend: Auth service login successful, checking staff status")
                 # Verify this is a staff/admin user
                 if self._is_staff_user(data.get("access_token")):
+                    logger.info(f"AuthServiceBackend: User {username} is staff/admin, authentication successful")
                     return data
+                else:
+                    logger.warning(f"AuthServiceBackend: User {username} is not staff/admin")
 
-            logger.warning(f"Auth service login failed: {response.status_code}")
+            logger.warning(f"Auth service login failed: {response.status_code} - {response.text}")
             return None
 
         except requests.RequestException as e:
-            logger.error(f"Failed to connect to auth service: {str(e)}")
+            logger.error(f"Failed to connect to auth service at {login_url}: {str(e)}")
             return None
 
     def _is_staff_user(self, access_token):
