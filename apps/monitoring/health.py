@@ -15,6 +15,37 @@ from config.database_retry import DatabaseHealthCheck, database_retry
 
 @extend_schema(
     tags=["Health"],
+    summary="Simple health check endpoint",
+    description="Basic health check that doesn't require database connections - for debugging production issues.",
+    responses={
+        200: {
+            "type": "object",
+            "properties": {
+                "status": {"type": "string", "example": "alive"},
+                "service": {"type": "string", "example": "syncscope-monitoring-service"},
+                "timestamp": {"type": "string", "example": "2024-01-01T12:00:00Z"},
+            },
+        },
+    },
+)
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def simple_health_check(request):
+    """
+    Simple health check endpoint that doesn't require database or external dependencies.
+    """
+    return Response(
+        {
+            "status": "alive",
+            "service": "syncscope-monitoring-service",
+            "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        },
+        status=status.HTTP_200_OK,
+    )
+
+
+@extend_schema(
+    tags=["Health"],
     summary="Health check endpoint",
     description="Check the health status of the monitoring service including database and cache connections.",
     responses={

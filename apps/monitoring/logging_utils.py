@@ -16,42 +16,46 @@ class StructuredFormatter(logging.Formatter):
     """
 
     def format(self, record):
-        # Create the base log entry
-        log_entry = {
-            "timestamp": datetime.utcnow().isoformat() + "Z",
-            "level": record.levelname,
-            "logger": record.name,
-            "message": record.getMessage(),
-            "service": "syncscope-monitoring-service",
-            "environment": getattr(settings, "ENVIRONMENT", "development"),
-        }
+        try:
+            # Create the base log entry
+            log_entry = {
+                "timestamp": datetime.utcnow().isoformat() + "Z",
+                "level": record.levelname,
+                "logger": record.name,
+                "message": record.getMessage(),
+                "service": "syncscope-monitoring-service",
+                "environment": getattr(settings, "ENVIRONMENT", "development"),
+            }
 
-        # Add exception info if present
-        if record.exc_info:
-            log_entry["exception"] = self.formatException(record.exc_info)
+            # Add exception info if present
+            if record.exc_info:
+                log_entry["exception"] = self.formatException(record.exc_info)
 
-        # Add extra fields from the log record
-        if hasattr(record, "user_id"):
-            log_entry["user_id"] = record.user_id
-        if hasattr(record, "session_id"):
-            log_entry["session_id"] = record.session_id
-        if hasattr(record, "request_id"):
-            log_entry["request_id"] = record.request_id
-        if hasattr(record, "endpoint"):
-            log_entry["endpoint"] = record.endpoint
-        if hasattr(record, "method"):
-            log_entry["method"] = record.method
-        if hasattr(record, "status_code"):
-            log_entry["status_code"] = record.status_code
-        if hasattr(record, "duration"):
-            log_entry["duration_ms"] = record.duration
+            # Add extra fields from the log record
+            if hasattr(record, "user_id"):
+                log_entry["user_id"] = record.user_id
+            if hasattr(record, "session_id"):
+                log_entry["session_id"] = record.session_id
+            if hasattr(record, "request_id"):
+                log_entry["request_id"] = record.request_id
+            if hasattr(record, "endpoint"):
+                log_entry["endpoint"] = record.endpoint
+            if hasattr(record, "method"):
+                log_entry["method"] = record.method
+            if hasattr(record, "status_code"):
+                log_entry["status_code"] = record.status_code
+            if hasattr(record, "duration"):
+                log_entry["duration_ms"] = record.duration
 
-        # Add any custom extra fields
-        for key, value in record.__dict__.items():
-            if key.startswith("extra_"):
-                log_entry[key[6:]] = value  # Remove 'extra_' prefix
+            # Add any custom extra fields
+            for key, value in record.__dict__.items():
+                if key.startswith("extra_"):
+                    log_entry[key[6:]] = value  # Remove 'extra_' prefix
 
-        return json.dumps(log_entry)
+            return json.dumps(log_entry)
+        except Exception:
+            # Fallback to simple format if JSON serialization fails
+            return f"{record.levelname} {record.name} {record.getMessage()}"
 
 
 class MonitoringLogger:

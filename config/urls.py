@@ -9,10 +9,13 @@ from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 
 from apps.monitoring.views import api_home
+from apps.monitoring.health import simple_health_check
 
 urlpatterns = [
     # Home page
     path("", api_home, name="api_home"),
+    # Simple health check for debugging
+    path("simple-health/", simple_health_check, name="simple_health"),
     path("admin/", admin.site.urls),
     path("monitoring/", include("apps.monitoring.urls")),
     path("health/", include("apps.monitoring.urls")),

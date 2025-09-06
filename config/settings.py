@@ -272,18 +272,6 @@ LOGGING = {
         },
     },
     "handlers": {
-        "structured_file": {
-            "level": "INFO",
-            "class": "logging.FileHandler",
-            "filename": "monitoring-structured.log",
-            "formatter": "structured",
-        },
-        "file": {
-            "level": "INFO",
-            "class": "logging.FileHandler",
-            "filename": "django.log",
-            "formatter": "verbose",
-        },
         "console": {
             "level": "INFO",
             "class": "logging.StreamHandler",
@@ -292,27 +280,47 @@ LOGGING = {
     },
     "loggers": {
         "django": {
-            "handlers": ["file", "console"],
+            "handlers": ["console"],
             "level": "INFO",
             "propagate": True,
         },
         "django.request": {
-            "handlers": ["structured_file", "console"],
+            "handlers": ["console"],
             "level": "WARNING",
             "propagate": False,
         },
         "apps.monitoring": {
-            "handlers": ["structured_file", "console"],
+            "handlers": ["console"],
             "level": "INFO",
             "propagate": True,
         },
         "apps.monitoring.performance": {
-            "handlers": ["structured_file"],
+            "handlers": ["console"],
             "level": "INFO",
             "propagate": False,
         },
     },
 }
+
+# Add file logging only in development or when writable directories exist
+if DEBUG or os.access("/app", os.W_OK):
+    LOGGING["handlers"]["structured_file"] = {
+        "level": "INFO",
+        "class": "logging.FileHandler",
+        "filename": "/tmp/monitoring-structured.log" if not DEBUG else "monitoring-structured.log",
+        "formatter": "structured",
+    }
+    LOGGING["handlers"]["file"] = {
+        "level": "INFO",
+        "class": "logging.FileHandler", 
+        "filename": "/tmp/django.log" if not DEBUG else "django.log",
+        "formatter": "verbose",
+    }
+    
+    # Update loggers to include file handlers
+    for logger_name in ["django", "django.request", "apps.monitoring", "apps.monitoring.performance"]:
+        if logger_name in LOGGING["loggers"]:
+            LOGGING["loggers"][logger_name]["handlers"].extend(["structured_file", "file"])
 
 # Cache configuration (Redis)
 CACHES = {
