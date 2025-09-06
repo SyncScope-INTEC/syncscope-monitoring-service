@@ -243,38 +243,38 @@ def end_session(request):
 @activity_ratelimit
 def bulk_activities(request):
     """Bulk upload developer activities for a session."""
-    try:
-        serializer = BulkActivitySerializer(data=request.data)
-        if serializer.is_valid():
-            session_id = serializer.validated_data["session_id"]
-            activities_data = serializer.validated_data["activities"]
-
-            # Verify session exists
-            session = get_object_or_404(DeveloperSession, session_id=session_id)
-
-            # Create activities in bulk
-            activities = []
-            for activity_data in activities_data:
-                # Remove session from data as we'll set it explicitly
-                activity_data.pop("session", None)
-                activity = ActivityLog(session=session, **activity_data)
-                activities.append(activity)
-
-            # Bulk create for better performance
-            created_activities = ActivityLog.objects.bulk_create(activities)
-
-            monitoring_logger.log_activity_event("bulk_upload", session_id, count=len(created_activities))
-
-            return Response(
-                {
-                    "message": f"Successfully created {len(created_activities)} activities",
-                    "session_id": str(session_id),
-                    "activities_count": len(created_activities),
-                },
-                status=status.HTTP_201_CREATED,
-            )
-
+    serializer = BulkActivitySerializer(data=request.data)
+    if not serializer.is_valid():
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    session_id = serializer.validated_data["session_id"]
+    activities_data = serializer.validated_data["activities"]
+
+    # Verify session exists (this will raise Http404 if not found)
+    session = get_object_or_404(DeveloperSession, session_id=session_id)
+
+    try:
+        # Create activities in bulk
+        activities = []
+        for activity_data in activities_data:
+            # Remove session from data as we'll set it explicitly
+            activity_data.pop("session", None)
+            activity = ActivityLog(session=session, **activity_data)
+            activities.append(activity)
+
+        # Bulk create for better performance
+        created_activities = ActivityLog.objects.bulk_create(activities)
+
+        monitoring_logger.log_activity_event("bulk_upload", session_id, count=len(created_activities))
+
+        return Response(
+            {
+                "message": f"Successfully created {len(created_activities)} activities",
+                "session_id": str(session_id),
+                "activities_count": len(created_activities),
+            },
+            status=status.HTTP_201_CREATED,
+        )
 
     except Exception as e:
         logger.error(f"Error creating bulk activities: {e}")

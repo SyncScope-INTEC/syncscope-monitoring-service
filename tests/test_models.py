@@ -9,7 +9,7 @@ from django.core.exceptions import ValidationError
 from django.test import TestCase
 from django.utils import timezone
 
-from ..models import ActivityLog, CodeMetrics, DeveloperSession, GitEvent
+from apps.monitoring.models import ActivityLog, CodeMetrics, DeveloperSession, GitEvent
 
 
 class DeveloperSessionModelTest(TestCase):

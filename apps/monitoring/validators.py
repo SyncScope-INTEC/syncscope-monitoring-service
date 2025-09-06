@@ -26,7 +26,8 @@ class FilePathValidator:
         # Check for potentially dangerous paths
         dangerous_patterns = [
             r"\.\.",  # Directory traversal
-            r'[<>:"|?*]',  # Windows invalid characters
+            r'[<>"|?*]',  # Windows invalid characters (excluding : to allow drive letters)
+            r"(?<!^[A-Za-z]):",  # Colon not preceded by drive letter at start
             r"^[/\\]*(etc|proc|sys|dev)",  # System directories (Unix)
             r"^[A-Za-z]:[/\\]*(?:Windows|System32|Program Files)",  # System directories (Windows)
         ]
@@ -143,7 +144,7 @@ class SessionMetadataValidator:
         self._validate_dict(value, depth=0)
 
     def _validate_dict(self, data, depth=0):
-        if depth > self.MAX_NESTED_DEPTH:
+        if depth >= self.MAX_NESTED_DEPTH:
             raise ValidationError(f"Session metadata too deeply nested (max {self.MAX_NESTED_DEPTH} levels)")
 
         if len(data) > self.MAX_KEYS:

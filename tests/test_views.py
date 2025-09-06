@@ -11,8 +11,8 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient, APITestCase
 
-from ..authentication import MonitoringUser
-from ..models import ActivityLog, CodeMetrics, DeveloperSession, GitEvent
+from apps.monitoring.authentication import MonitoringUser
+from apps.monitoring.models import ActivityLog, CodeMetrics, DeveloperSession, GitEvent
 
 
 class HealthCheckViewTest(TestCase):
@@ -23,7 +23,9 @@ class HealthCheckViewTest(TestCase):
         response = self.client.get("/monitoring/health/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.json()["status"], "healthy")
-        self.assertEqual(response.json()["service"], "syncscope-monitoring-service")
+        self.assertIn("services", response.json())
+        self.assertIn("database", response.json()["services"])
+        self.assertIn("cache", response.json()["services"])
 
 
 class SessionViewsTest(APITestCase):

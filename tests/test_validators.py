@@ -6,7 +6,7 @@ from django.core.exceptions import ValidationError
 from django.test import TestCase
 from rest_framework import serializers
 
-from ..validators import (
+from apps.monitoring.validators import (
     ActivityTypeValidator,
     FilePathValidator,
     GitBranchValidator,
@@ -266,7 +266,7 @@ class ActivityTypeValidatorTest(TestCase):
 
     def test_valid_activity_types(self):
         """Test valid activity types."""
-        from ..models import ActivityLog
+        from apps.monitoring.models import ActivityLog
 
         validator = ActivityTypeValidator()
 
@@ -291,7 +291,7 @@ class GitEventTypeValidatorTest(TestCase):
 
     def test_valid_git_event_types(self):
         """Test valid Git event types."""
-        from ..models import GitEvent
+        from apps.monitoring.models import GitEvent
 
         validator = GitEventTypeValidator()
 

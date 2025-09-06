@@ -63,6 +63,7 @@ class MonitoringUser:
 
     def __init__(self, user_data):
         self.id = user_data.get("user_id")
+        self.pk = user_data.get("user_id")  # Add pk for django-ratelimit compatibility
         self.user_id = user_data.get("user_id")
         self.email = user_data.get("email", "")
         self.username = user_data.get("username", "")

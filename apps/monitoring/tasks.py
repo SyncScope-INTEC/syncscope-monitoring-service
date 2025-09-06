@@ -199,14 +199,15 @@ def send_analytics_to_service():
         raise
 
 
+from .db_utils import DatabaseManager
+
+
 @shared_task
 def health_check_task():
     """
     Background health check task for monitoring service status.
     """
     try:
-        from .db_utils import DatabaseManager
-
         # Check database connection
         db_healthy = DatabaseManager.test_connection()
 

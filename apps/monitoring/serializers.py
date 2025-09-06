@@ -166,9 +166,22 @@ class GitEventSerializer(serializers.ModelSerializer):
         return value
 
 
+class BulkActivityItemSerializer(serializers.ModelSerializer):
+    """Serializer for individual activities in bulk operations (without session field)."""
+
+    activity_type = serializers.CharField(validators=[ActivityTypeValidator()])
+    file_path = serializers.CharField(required=False, allow_blank=True, validators=[FilePathValidator()])
+    activity_metadata = serializers.JSONField(required=False, validators=[SessionMetadataValidator()])
+
+    class Meta:
+        model = ActivityLog
+        fields = ["activity_type", "file_path", "file_extension", "activity_metadata"]
+        read_only_fields = ["file_extension"]
+
+
 class BulkActivitySerializer(serializers.Serializer):
     session_id = serializers.UUIDField()
-    activities = ActivityLogSerializer(many=True)
+    activities = BulkActivityItemSerializer(many=True)
 
     def validate_activities(self, value):
         """Validate activities list is not empty and has reasonable size."""

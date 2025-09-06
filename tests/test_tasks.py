@@ -9,8 +9,13 @@ from unittest.mock import MagicMock, patch
 from django.test import TestCase
 from django.utils import timezone
 
-from ..models import ActivityLog, CodeMetrics, DeveloperSession, GitEvent
-from ..tasks import aggregate_user_metrics, cleanup_expired_sessions, health_check_task, process_session_analytics
+from apps.monitoring.models import ActivityLog, CodeMetrics, DeveloperSession, GitEvent
+from apps.monitoring.tasks import (
+    aggregate_user_metrics,
+    cleanup_expired_sessions,
+    health_check_task,
+    process_session_analytics,
+)
 
 
 class ProcessSessionAnalyticsTest(TestCase):
