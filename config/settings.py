@@ -312,11 +312,11 @@ if DEBUG or os.access("/app", os.W_OK):
     }
     LOGGING["handlers"]["file"] = {
         "level": "INFO",
-        "class": "logging.FileHandler", 
+        "class": "logging.FileHandler",
         "filename": "/tmp/django.log" if not DEBUG else "django.log",
         "formatter": "verbose",
     }
-    
+
     # Update loggers to include file handlers
     for logger_name in ["django", "django.request", "apps.monitoring", "apps.monitoring.performance"]:
         if logger_name in LOGGING["loggers"]:
