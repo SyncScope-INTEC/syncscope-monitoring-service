@@ -213,3 +213,5 @@ staticfiles/
 .env
 .venv/
 *.env
+
+.claude
