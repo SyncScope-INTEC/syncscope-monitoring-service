@@ -104,8 +104,21 @@ class SecurityHeadersMiddleware(MiddlewareMixin):
         if request.is_secure():
             response["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains; preload"
 
-        # Content Security Policy for API
-        response["Content-Security-Policy"] = "default-src 'none'; " "frame-ancestors 'none'; " "base-uri 'none'"
+        # Content Security Policy for API and web interface
+        if request.path == "/" or request.path.startswith("/admin/"):
+            # Allow inline styles and scripts for main homepage and admin interface
+            response["Content-Security-Policy"] = (
+                "default-src 'self'; "
+                "style-src 'self' 'unsafe-inline'; "
+                "script-src 'self' 'unsafe-inline'; "
+                "img-src 'self' data:; "
+                "font-src 'self'; "
+                "frame-ancestors 'none'; "
+                "base-uri 'self'"
+            )
+        else:
+            # Stricter CSP for API endpoints
+            response["Content-Security-Policy"] = "default-src 'none'; " "frame-ancestors 'none'; " "base-uri 'none'"
 
         # API-specific headers
         response["X-Service"] = "syncscope-monitoring-service"

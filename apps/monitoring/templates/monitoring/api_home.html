@@ -1,9 +1,12 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ api_title }}</title>
+    <link rel="icon" type="image/svg+xml" href="{% static 'monitoring/images/syncscope-logo.svg' %}">
+    <link rel="alternate icon" href="{% static 'monitoring/images/syncscope-logo.svg' %}">
     <style>
         :root {
             /* Light theme */
@@ -22,8 +25,8 @@
         
         [data-theme="dark"] {
             /* Dark theme */
-            --bg-primary: #0f172a;
-            --bg-secondary: #1e293b;
+            --bg-primary: #0f0f23;
+            --bg-secondary: #1a1a2e;
             --text-primary: #ffffff;
             --text-secondary: #d1d5db;
             --text-muted: #9ca3af;
@@ -79,14 +82,6 @@
             width: 40px;
             height: 40px;
             transition: transform 0.3s ease;
-            background: var(--accent-primary);
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: bold;
-            font-size: 1.2rem;
         }
         
         .logo-svg:hover {
@@ -318,11 +313,11 @@
         }
     </style>
 </head>
-<body data-theme="light">
+<body data-theme="dark">
     <div class="header">
         <div class="header-content">
             <div class="logo-section">
-                <div class="logo-svg">📊</div>
+                <img src="{% static 'monitoring/images/syncscope-logo.svg' %}" class="logo-svg" alt="SyncScope Logo">
                 
                 <div class="brand-text">
                     <div class="brand-title">{{ api_title }}</div>
@@ -341,7 +336,7 @@
     
     <div class="container fade-in">
         <div class="routes-section">
-            <h2 class="section-title">📊 Quick Access</h2>
+            <h2 class="section-title">🚀 Quick Access</h2>
             <div class="routes-grid">
                 {% for route in main_routes %}
                 <a href="{{ route.url }}" class="route-card" {% if route.category == 'admin' or route.category == 'documentation' %}target="_blank"{% endif %}>
@@ -356,7 +351,7 @@
         </div>
         
         <div class="features-section">
-            <h2 class="section-title">📈 Service Features</h2>
+            <h2 class="section-title">⚡ Service Features</h2>
             <div class="features-grid">
                 {% for feature in service_info.features %}
                 <span class="feature-tag">{{ feature }}</span>
@@ -387,7 +382,7 @@
         
         // Load saved theme
         function loadTheme() {
-            const savedTheme = localStorage.getItem('theme') || 'light';
+            const savedTheme = localStorage.getItem('theme') || 'dark';
             const body = document.body;
             const themeIcon = document.querySelector('.theme-icon');
             

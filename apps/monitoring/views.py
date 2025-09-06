@@ -104,13 +104,11 @@ def api_home(request):
 
     # Try to render HTML template first, fallback to JSON
     try:
-        # Check if this is a test case that explicitly uses a mock template
-        import sys
-
-        is_testing = "pytest" in sys.modules or "test" in sys.argv
         template = loader.get_template("monitoring/api_home.html")
         return HttpResponse(template.render(context, request))
-    except:
+    except Exception as e:
+        # Log the error for debugging
+        logger.error(f"Template loading error: {str(e)}")
         # Fallback to JSON response if template doesn't exist
         return Response(context, status=status.HTTP_200_OK)
 
