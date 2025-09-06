@@ -1,6 +1,8 @@
 import logging
 
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
+from django.template import loader
 from django.utils import timezone
 from drf_spectacular.openapi import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
@@ -32,6 +34,85 @@ from .serializers import (
 from .tasks import process_session_analytics
 
 logger = logging.getLogger(__name__)
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def api_home(request):
+    """
+    API Home page showing main navigation routes and service links.
+    """
+    # Define the main navigation routes
+    main_routes = [
+        {
+            "title": "API Documentation",
+            "description": "Interactive API documentation with live testing",
+            "url": request.build_absolute_uri("/api/docs/"),
+            "icon": "📖",
+            "category": "documentation",
+        },
+        {
+            "title": "ReDoc Documentation",
+            "description": "Clean, three-panel OpenAPI documentation",
+            "url": request.build_absolute_uri("/api/redoc/"),
+            "icon": "📚",
+            "category": "documentation",
+        },
+        {
+            "title": "OpenAPI Schema",
+            "description": "Raw OpenAPI specification in JSON format",
+            "url": request.build_absolute_uri("/api/schema/"),
+            "icon": "⚙️",
+            "category": "documentation",
+        },
+        {
+            "title": "Admin Interface",
+            "description": "Django admin panel for monitoring data management",
+            "url": request.build_absolute_uri("/admin/"),
+            "icon": "🔧",
+            "category": "admin",
+        },
+        {
+            "title": "Health Check",
+            "description": "Service health status and monitoring",
+            "url": request.build_absolute_uri("/health/"),
+            "icon": "❤️",
+            "category": "monitoring",
+        },
+    ]
+
+    # Quick stats about the service
+    service_info = {
+        "endpoints": 12,
+        "auth_methods": ["JWT", "Service Token"],
+        "features": ["Session Tracking", "Activity Monitoring", "Code Metrics", "Git Events"],
+        "status": "Operational",
+    }
+
+    context = {
+        "main_routes": main_routes,
+        "service_info": service_info,
+        "api_title": "SyncScope Monitoring Service",
+        "api_version": "1.0.0",
+        "api_description": "Developer activity monitoring and metrics collection service",
+        "base_url": request.build_absolute_uri("/"),
+    }
+
+    # Check if JSON format is explicitly requested
+    if request.GET.get("format") == "json":
+        return Response(context, status=status.HTTP_200_OK)
+
+    # Try to render HTML template first, fallback to JSON
+    try:
+        # Check if this is a test case that explicitly uses a mock template
+        import sys
+
+        is_testing = "pytest" in sys.modules or "test" in sys.argv
+        template = loader.get_template("monitoring/api_home.html")
+        return HttpResponse(template.render(context, request))
+    except:
+        # Fallback to JSON response if template doesn't exist
+        return Response(context, status=status.HTTP_200_OK)
 
 
 @extend_schema(

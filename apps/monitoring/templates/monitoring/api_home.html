@@ -82,6 +82,14 @@
             width: 40px;
             height: 40px;
             transition: transform 0.3s ease;
+            background: var(--accent-primary);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 1.2rem;
         }
         
         .logo-svg:hover {
@@ -317,11 +325,11 @@
     <div class="header">
         <div class="header-content">
             <div class="logo-section">
-                <img src="{% static 'monitoring/images/syncscope-logo.svg' %}" class="logo-svg" alt="SyncScope Logo">
+                <div class="logo-svg">📊</div>
                 
                 <div class="brand-text">
                     <div class="brand-title">{{ api_title }}</div>
-                    <div class="brand-subtitle">Monitoring Hub</div>
+                    <div class="brand-subtitle">Activity Monitoring Hub</div>
                 </div>
             </div>
             
@@ -356,8 +364,8 @@
                 {% for feature in service_info.features %}
                 <span class="feature-tag">{{ feature }}</span>
                 {% endfor %}
-                {% for method in service_info.monitoring_features %}
-                <span class="feature-tag monitoring-feature">📊 {{ method }}</span>
+                {% for method in service_info.auth_methods %}
+                <span class="feature-tag monitoring-feature">🔐 {{ method }}</span>
                 {% endfor %}
             </div>
         </div>
