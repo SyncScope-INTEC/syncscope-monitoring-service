@@ -34,9 +34,6 @@ RUN chown -R django:django /app
 # Switch to non-root user
 USER django
 
-# Collect static files
-RUN python manage.py collectstatic --noinput
-
 # Expose port
 EXPOSE 8002
 
@@ -44,5 +41,9 @@ EXPOSE 8002
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
     CMD python -c "import requests; requests.get('http://localhost:8002/health/', timeout=10)"
 
+# Create startup script to collect static files and run server
+COPY --chown=django:django start.sh /app/
+RUN chmod +x /app/start.sh
+
 # Default command
-CMD ["gunicorn", "--bind", "0.0.0.0:8002", "--workers", "3", "--worker-class", "sync", "--timeout", "120", "config.wsgi:application"]
+CMD ["/app/start.sh"]
