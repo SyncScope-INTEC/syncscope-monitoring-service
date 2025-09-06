@@ -180,8 +180,8 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Authentication backends for admin integration with auth service
 AUTHENTICATION_BACKENDS = [
-    'apps.monitoring.auth_backends.CachedAuthServiceBackend',
-    'django.contrib.auth.backends.ModelBackend',  # Fallback for local users
+    "apps.monitoring.auth_backends.CachedAuthServiceBackend",
+    "django.contrib.auth.backends.ModelBackend",  # Fallback for local users
 ]
 
 # REST Framework configuration
