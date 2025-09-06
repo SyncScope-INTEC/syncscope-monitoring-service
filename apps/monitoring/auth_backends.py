@@ -23,7 +23,7 @@ class AuthServiceBackend(BaseBackend):
         Authenticate user against the auth service.
         """
         logger.info(f"AuthServiceBackend: Attempting authentication for user: {username}")
-        
+
         if username is None or password is None:
             logger.warning("AuthServiceBackend: Username or password is None")
             return None
@@ -71,7 +71,7 @@ class AuthServiceBackend(BaseBackend):
             response = requests.post(login_url, json=payload, headers={"Content-Type": "application/json"}, timeout=10)
 
             logger.info(f"AuthServiceBackend: Auth service response status: {response.status_code}")
-            
+
             if response.status_code == 200:
                 data = response.json()
                 logger.info(f"AuthServiceBackend: Auth service login successful, checking staff status")
