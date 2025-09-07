@@ -34,7 +34,9 @@ class SessionViewsTest(APITestCase):
     def setUp(self):
         self.client = APIClient()
         # Mock user for authentication
-        self.mock_user = MonitoringUser({"user_id": "12345678-1234-5678-9012-123456789abc", "email": "test@example.com", "username": "testuser"})
+        self.mock_user = MonitoringUser(
+            {"user_id": "12345678-1234-5678-9012-123456789abc", "email": "test@example.com", "username": "testuser"}
+        )
         self.client.force_authenticate(user=self.mock_user)
 
         self.session_data = {
@@ -124,7 +126,9 @@ class SessionViewsTest(APITestCase):
     def test_get_user_sessions_unauthorized(self):
         """Test that users can't access other users' sessions."""
         # Mock different user
-        other_user = MonitoringUser({"user_id": "87654321-4321-8765-2109-cba987654321", "email": "other@example.com", "username": "otheruser"})
+        other_user = MonitoringUser(
+            {"user_id": "87654321-4321-8765-2109-cba987654321", "email": "other@example.com", "username": "otheruser"}
+        )
         self.client.force_authenticate(user=other_user)
 
         DeveloperSession.objects.create(user_id="12345678-1234-5678-9012-123456789abc", ide_name="VSCode")

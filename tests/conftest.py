@@ -40,7 +40,13 @@ def api_client():
 def mock_user():
     """Mock user for authentication."""
     return MonitoringUser(
-        {"user_id": "12345678-1234-5678-9012-123456789abc", "email": "test@example.com", "username": "testuser", "is_staff": False, "is_superuser": False}
+        {
+            "user_id": "12345678-1234-5678-9012-123456789abc",
+            "email": "test@example.com",
+            "username": "testuser",
+            "is_staff": False,
+            "is_superuser": False,
+        }
     )
 
 
@@ -48,7 +54,13 @@ def mock_user():
 def admin_user():
     """Mock admin user for authentication."""
     return MonitoringUser(
-        {"user_id": "87654321-4321-8765-2109-cba987654321", "email": "admin@example.com", "username": "adminuser", "is_staff": True, "is_superuser": True}
+        {
+            "user_id": "87654321-4321-8765-2109-cba987654321",
+            "email": "admin@example.com",
+            "username": "adminuser",
+            "is_staff": True,
+            "is_superuser": True,
+        }
     )
 
 
@@ -105,7 +117,9 @@ def expired_session(db):
     """Create an expired test session."""
     start_time = timezone.now() - timedelta(hours=25)  # Older than 24 hours
 
-    return DeveloperSession.objects.create(user_id="12345678-1234-5678-9012-123456789abc", session_start=start_time, ide_name="Vim", operating_system="Linux")
+    return DeveloperSession.objects.create(
+        user_id="12345678-1234-5678-9012-123456789abc", session_start=start_time, ide_name="Vim", operating_system="Linux"
+    )
 
 
 @pytest.fixture
@@ -289,7 +303,9 @@ class MonitoringTestCase(TestCase):
     def setUp(self):
         """Set up test data."""
         self.client = APIClient()
-        self.mock_user = MonitoringUser({"user_id": "12345678-1234-5678-9012-123456789abc", "email": "test@example.com", "username": "testuser"})
+        self.mock_user = MonitoringUser(
+            {"user_id": "12345678-1234-5678-9012-123456789abc", "email": "test@example.com", "username": "testuser"}
+        )
         self.client.force_authenticate(user=self.mock_user)
 
     def create_test_session(self, user_id="12345678-1234-5678-9012-123456789abc", active=True):

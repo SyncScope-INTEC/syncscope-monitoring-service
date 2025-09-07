@@ -64,7 +64,10 @@ class CleanupExpiredSessionsTest(TestCase):
         # Create expired session (older than 24 hours, still active)
         old_time = timezone.now() - timedelta(hours=25)
         self.expired_session = DeveloperSession.objects.create(
-            user_id="12345678-1234-5678-9012-123456789abc", ide_name="VSCode", session_start=old_time, session_end=None  # Still active
+            user_id="12345678-1234-5678-9012-123456789abc",
+            ide_name="VSCode",
+            session_start=old_time,
+            session_end=None,  # Still active
         )
 
         # Create recent session (should not be cleaned up)

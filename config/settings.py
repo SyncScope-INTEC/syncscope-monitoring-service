@@ -150,7 +150,7 @@ if "test" in sys.argv or "pytest" in sys.modules:
         "NAME": "test_syncscope_monitoring",
         "CREATE_DB": True,
     }
-    
+
     # Ensure monitoring schema is used in tests
     if not USE_SQLITE:
         test_options = DATABASES["default"].get("OPTIONS", {}).copy()

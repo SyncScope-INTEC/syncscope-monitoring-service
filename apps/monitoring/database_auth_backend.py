@@ -3,13 +3,13 @@ API-based authentication backend that uses the SyncScope Auth Service.
 """
 
 import logging
-import requests
 import time
 
+import requests
+from django.conf import settings
 from django.contrib.auth.backends import BaseBackend
 from django.contrib.auth.models import User
 from django.core.cache import cache
-from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
@@ -36,17 +36,17 @@ class AuthServiceAPIBackend(BaseBackend):
         try:
             # Authenticate with the auth service
             auth_response = self._authenticate_with_service(username, password)
-            
-            if auth_response and auth_response.get('user'):
-                user_data = auth_response['user']
+
+            if auth_response and auth_response.get("user"):
+                user_data = auth_response["user"]
                 logger.info(f"AuthServiceAPIBackend: Authentication successful for: {username}")
 
                 # Check if user has admin privileges
-                role = user_data.get('role', 'developer')
-                is_staff = user_data.get('is_staff', False) or role in ['admin', 'supervisor']
-                is_superuser = user_data.get('is_superuser', False) or role == 'admin'
-                
-                if user_data.get('is_active', True) and is_staff:
+                role = user_data.get("role", "developer")
+                is_staff = user_data.get("is_staff", False) or role in ["admin", "supervisor"]
+                is_superuser = user_data.get("is_superuser", False) or role == "admin"
+
+                if user_data.get("is_active", True) and is_staff:
                     logger.info(f"AuthServiceAPIBackend: User {username} has admin privileges (role: {role})")
 
                     # Create or update local Django user for admin interface
@@ -79,17 +79,12 @@ class AuthServiceAPIBackend(BaseBackend):
         for attempt in range(max_retries):
             try:
                 logger.info(f"AuthServiceAPIBackend: API call attempt {attempt + 1}/{max_retries}")
-                
+
                 response = requests.post(
                     f"{self.auth_service_url}/auth/login/",
-                    json={
-                        "email": email,
-                        "password": password
-                    },
-                    headers={
-                        "Content-Type": "application/json"
-                    },
-                    timeout=30  # Longer timeout for cold starts
+                    json={"email": email, "password": password},
+                    headers={"Content-Type": "application/json"},
+                    timeout=30,  # Longer timeout for cold starts
                 )
 
                 if response.status_code == 200:
@@ -100,7 +95,7 @@ class AuthServiceAPIBackend(BaseBackend):
                     return None
                 else:
                     logger.warning(f"AuthServiceAPIBackend: API call failed with status {response.status_code}")
-                    
+
             except requests.exceptions.Timeout:
                 logger.warning(f"AuthServiceAPIBackend: Timeout on attempt {attempt + 1} (cold start?)")
                 if attempt < max_retries - 1:
@@ -118,30 +113,30 @@ class AuthServiceAPIBackend(BaseBackend):
         Create or update a local Django user for admin interface.
         """
         try:
-            email = user_data['email']
-            role = user_data.get('role', 'developer')
-            
+            email = user_data["email"]
+            role = user_data.get("role", "developer")
+
             # Create or update local user
             user, created = User.objects.get_or_create(
                 username=email,
                 defaults={
                     "email": email,
-                    "first_name": user_data.get('first_name', ''),
-                    "last_name": user_data.get('last_name', ''),
-                    "is_staff": user_data.get('is_staff', False) or role in ['admin', 'supervisor'],
-                    "is_superuser": user_data.get('is_superuser', False) or role == 'admin',
-                    "is_active": user_data.get('is_active', True),
+                    "first_name": user_data.get("first_name", ""),
+                    "last_name": user_data.get("last_name", ""),
+                    "is_staff": user_data.get("is_staff", False) or role in ["admin", "supervisor"],
+                    "is_superuser": user_data.get("is_superuser", False) or role == "admin",
+                    "is_active": user_data.get("is_active", True),
                 },
             )
 
             if not created:
                 # Update existing user info to sync with auth service
                 user.email = email
-                user.first_name = user_data.get('first_name', '')
-                user.last_name = user_data.get('last_name', '')
-                user.is_staff = user_data.get('is_staff', False) or role in ['admin', 'supervisor']
-                user.is_superuser = user_data.get('is_superuser', False) or role == 'admin'
-                user.is_active = user_data.get('is_active', True)
+                user.first_name = user_data.get("first_name", "")
+                user.last_name = user_data.get("last_name", "")
+                user.is_staff = user_data.get("is_staff", False) or role in ["admin", "supervisor"]
+                user.is_superuser = user_data.get("is_superuser", False) or role == "admin"
+                user.is_active = user_data.get("is_active", True)
                 user.save()
                 logger.info(f"AuthServiceAPIBackend: Updated existing local user: {user.email}")
             else:
