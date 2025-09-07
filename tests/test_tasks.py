@@ -143,7 +143,7 @@ class AggregateUserMetricsTest(TestCase):
         mock_redis.return_value = mock_redis_instance
 
         today = timezone.now().date()
-        result = aggregate_user_metrics(1, today)
+        result = aggregate_user_metrics("12345678-1234-5678-9012-123456789abc", today)
 
         # Check that Redis caching was called
         mock_redis_instance.set_metrics_cache.assert_called_once()
@@ -152,8 +152,8 @@ class AggregateUserMetricsTest(TestCase):
         call_args = mock_redis_instance.set_metrics_cache.call_args[0]
         cache_key, cached_data = call_args[0], call_args[1]
 
-        self.assertIn("user_metrics:1:", cache_key)
-        self.assertEqual(cached_data["user_id"], 1)
+        self.assertIn("user_metrics:12345678-1234-5678-9012-123456789abc:", cache_key)
+        self.assertEqual(cached_data["user_id"], "12345678-1234-5678-9012-123456789abc")
         self.assertEqual(cached_data["sessions_count"], 2)
         self.assertEqual(cached_data["total_duration_minutes"], 120)  # 60 + 60
         self.assertEqual(cached_data["activities_count"], 1)

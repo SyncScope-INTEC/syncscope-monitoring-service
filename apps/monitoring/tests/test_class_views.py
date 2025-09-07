@@ -21,7 +21,7 @@ class BaseMonitoringAPIViewTest(APITestCase):
     def setUp(self):
         """Set up test fixtures."""
         self.client = APIClient()
-        self.mock_user = MonitoringUser({"user_id": 1, "email": "test@example.com", "username": "testuser"})
+        self.mock_user = MonitoringUser({"user_id": "12345678-1234-5678-9012-123456789abc", "email": "test@example.com", "username": "testuser"})
 
     def test_permission_classes(self):
         """Test that BaseMonitoringAPIView has correct permission classes."""
@@ -48,12 +48,12 @@ class SessionStatsViewTest(APITestCase):
     def setUp(self):
         """Set up test fixtures."""
         self.client = APIClient()
-        self.mock_user = MonitoringUser({"user_id": 1, "email": "test@example.com", "username": "testuser"})
+        self.mock_user = MonitoringUser({"user_id": "12345678-1234-5678-9012-123456789abc", "email": "test@example.com", "username": "testuser"})
         self.client.force_authenticate(user=self.mock_user)
 
         # Create test sessions
         self.session1 = DeveloperSession.objects.create(
-            user_id=1,
+            user_id="12345678-1234-5678-9012-123456789abc",
             ide_name="VSCode",
             session_duration_minutes=30,
             session_start=timezone.now() - timezone.timedelta(hours=2),
@@ -61,7 +61,7 @@ class SessionStatsViewTest(APITestCase):
         )
 
         self.session2 = DeveloperSession.objects.create(
-            user_id=1,
+            user_id="12345678-1234-5678-9012-123456789abc",
             ide_name="PyCharm",
             session_duration_minutes=45,
             session_start=timezone.now() - timezone.timedelta(hours=1),
@@ -70,11 +70,11 @@ class SessionStatsViewTest(APITestCase):
 
         # Active session (no end time)
         self.active_session = DeveloperSession.objects.create(
-            user_id=1, ide_name="IntelliJ", session_start=timezone.now() - timezone.timedelta(minutes=30)
+            user_id="12345678-1234-5678-9012-123456789abc", ide_name="IntelliJ", session_start=timezone.now() - timezone.timedelta(minutes=30)
         )
 
         # Different user session (should not appear in stats)
-        self.other_user_session = DeveloperSession.objects.create(user_id=2, ide_name="VSCode", session_duration_minutes=20)
+        self.other_user_session = DeveloperSession.objects.create(user_id="87654321-4321-8765-2109-cba987654321", ide_name="VSCode", session_duration_minutes=20)
 
     def test_permission_classes(self):
         """Test that SessionStatsView has correct permission classes."""
@@ -84,12 +84,12 @@ class SessionStatsViewTest(APITestCase):
 
     def test_get_session_stats_success(self):
         """Test successful session stats retrieval."""
-        response = self.client.get("/monitoring/sessions/1/stats/")
+        response = self.client.get("/monitoring/sessions/12345678-1234-5678-9012-123456789abc/stats/")
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         data = response.data
-        self.assertEqual(data["user_id"], 1)
+        self.assertEqual(data["user_id"], "12345678-1234-5678-9012-123456789abc")
         self.assertEqual(data["total_sessions"], 3)  # 2 completed + 1 active
         self.assertEqual(data["active_sessions"], 1)
         self.assertEqual(data["total_duration_hours"], 1.2)  # (30 + 45) / 60 = 1.25, rounded to 1.2
@@ -100,10 +100,10 @@ class SessionStatsViewTest(APITestCase):
     def test_get_session_stats_no_sessions(self):
         """Test session stats for user with no sessions."""
         # Create a different user
-        other_user = MonitoringUser({"user_id": 99, "email": "other@example.com", "username": "otheruser"})
+        other_user = MonitoringUser({"user_id": "99999999-9999-9999-9999-999999999999", "email": "other@example.com", "username": "otheruser"})
         self.client.force_authenticate(user=other_user)
 
-        response = self.client.get("/monitoring/sessions/99/stats/")
+        response = self.client.get("/monitoring/sessions/99999999-9999-9999-9999-999999999999/stats/")
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
@@ -118,9 +118,9 @@ class SessionStatsViewTest(APITestCase):
     def test_get_session_stats_only_active_sessions(self):
         """Test session stats when user has only active sessions."""
         # Delete completed sessions
-        DeveloperSession.objects.filter(user_id=1, session_end__isnull=False).delete()
+        DeveloperSession.objects.filter(user_id="12345678-1234-5678-9012-123456789abc", session_end__isnull=False).delete()
 
-        response = self.client.get("/monitoring/sessions/1/stats/")
+        response = self.client.get("/monitoring/sessions/12345678-1234-5678-9012-123456789abc/stats/")
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
@@ -132,11 +132,11 @@ class SessionStatsViewTest(APITestCase):
 
     def test_get_session_stats_unauthorized_user(self):
         """Test that users can't access other users' stats."""
-        other_user = MonitoringUser({"user_id": 2, "email": "other@example.com", "username": "otheruser"})
+        other_user = MonitoringUser({"user_id": "87654321-4321-8765-2109-cba987654321", "email": "other@example.com", "username": "otheruser"})
         self.client.force_authenticate(user=other_user)
 
         # Try to access user 1's stats as user 2
-        response = self.client.get("/monitoring/sessions/1/stats/")
+        response = self.client.get("/monitoring/sessions/12345678-1234-5678-9012-123456789abc/stats/")
 
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
@@ -144,7 +144,7 @@ class SessionStatsViewTest(APITestCase):
         """Test that unauthenticated users can't access stats."""
         self.client.force_authenticate(user=None)
 
-        response = self.client.get("/monitoring/sessions/1/stats/")
+        response = self.client.get("/monitoring/sessions/12345678-1234-5678-9012-123456789abc/stats/")
 
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
@@ -155,7 +155,7 @@ class SessionStatsViewTest(APITestCase):
 
         # This should raise the exception since it's not handled in the view
         with self.assertRaises(Exception):
-            self.client.get("/monitoring/sessions/1/stats/")
+            self.client.get("/monitoring/sessions/12345678-1234-5678-9012-123456789abc/stats/")
 
 
 class HealthMetricsViewTest(APITestCase):
