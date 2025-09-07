@@ -371,8 +371,8 @@ class ErrorHandlingTest(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         # Check if error details are present in response data
-        if hasattr(response, 'data') and response.data:
-            self.assertTrue(any(field in response.data for field in ['error', 'ide_name']))
+        if hasattr(response, "data") and response.data:
+            self.assertTrue(any(field in response.data for field in ["error", "ide_name"]))
 
 
 class RateLimitingTest(APITestCase):

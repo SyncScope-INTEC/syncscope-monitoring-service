@@ -100,7 +100,7 @@ class IsOwnerOrAdminTest(TestCase):
         request.user.is_authenticated = True
 
         # Mock object with session relation, but without user_id to test session path
-        obj = Mock(spec=['session'])  # Restrict Mock to only have session attribute
+        obj = Mock(spec=["session"])  # Restrict Mock to only have session attribute
         obj.session = self.session
 
         self.assertTrue(self.permission.has_object_permission(request, self.view, obj))
