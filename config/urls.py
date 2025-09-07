@@ -9,13 +9,14 @@ from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 
 from apps.monitoring.debug_views import test_auth_service, test_settings
-from apps.monitoring.health import simple_health_check
+from apps.monitoring.health import simple_health_check, health_check
 from apps.monitoring.views import api_home
 
 urlpatterns = [
     # Home page
     path("", api_home, name="api_home"),
-    # Simple health check for debugging
+    # Health check endpoints
+    path("health/", health_check, name="health_check_root"),
     path("simple-health/", simple_health_check, name="simple_health"),
     path("admin/", admin.site.urls),
     path("monitoring/", include("apps.monitoring.urls")),  # Include monitoring URLs with prefix
