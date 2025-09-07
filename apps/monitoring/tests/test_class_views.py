@@ -97,7 +97,7 @@ class SessionStatsViewTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         data = response.data
-        self.assertEqual(data["user_id"], "12345678-1234-5678-9012-123456789abc")
+        self.assertEqual(str(data["user_id"]), "12345678-1234-5678-9012-123456789abc")
         self.assertEqual(data["total_sessions"], 3)  # 2 completed + 1 active
         self.assertEqual(data["active_sessions"], 1)
         self.assertEqual(data["total_duration_hours"], 1.2)  # (30 + 45) / 60 = 1.25, rounded to 1.2
@@ -118,7 +118,7 @@ class SessionStatsViewTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         data = response.data
-        self.assertEqual(data["user_id"], 99)
+        self.assertEqual(str(data["user_id"]), "99999999-9999-9999-9999-999999999999")
         self.assertEqual(data["total_sessions"], 0)
         self.assertEqual(data["active_sessions"], 0)
         self.assertEqual(data["total_duration_hours"], 0.0)
