@@ -34,12 +34,12 @@ RUN chown -R django:django /app
 # Switch to non-root user
 USER django
 
-# Expose port
+# Expose port (Railway dynamically assigns PORT)
 EXPOSE 8002
 
-# Health check
+# Health check (use simple health endpoint to avoid database dependency)
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-    CMD python -c "import requests; requests.get('http://localhost:8002/health/', timeout=10)"
+    CMD python -c "import requests; requests.get('http://localhost:' + __import__('os').getenv('PORT', '8002') + '/simple-health/', timeout=10)"
 
 # Create startup script to collect static files and run server
 COPY --chown=django:django start.sh /app/
