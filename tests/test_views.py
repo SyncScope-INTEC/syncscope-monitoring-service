@@ -34,11 +34,11 @@ class SessionViewsTest(APITestCase):
     def setUp(self):
         self.client = APIClient()
         # Mock user for authentication
-        self.mock_user = MonitoringUser({"user_id": 1, "email": "test@example.com", "username": "testuser"})
+        self.mock_user = MonitoringUser({"user_id": "12345678-1234-5678-9012-123456789abc", "email": "test@example.com", "username": "testuser"})
         self.client.force_authenticate(user=self.mock_user)
 
         self.session_data = {
-            "user_id": 1,
+            "user_id": "12345678-1234-5678-9012-123456789abc",
             "ide_name": "VSCode",
             "ide_version": "1.85.0",
             "project_path": "/home/user/project",
@@ -111,8 +111,8 @@ class SessionViewsTest(APITestCase):
     def test_get_user_sessions(self):
         """Test retrieving user sessions."""
         # Create test sessions
-        session1 = DeveloperSession.objects.create(user_id=1, ide_name="VSCode")
-        session2 = DeveloperSession.objects.create(user_id=1, ide_name="PyCharm")
+        session1 = DeveloperSession.objects.create(user_id="12345678-1234-5678-9012-123456789abc", ide_name="VSCode")
+        session2 = DeveloperSession.objects.create(user_id="12345678-1234-5678-9012-123456789abc", ide_name="PyCharm")
         session3 = DeveloperSession.objects.create(user_id=2, ide_name="VSCode")  # Different user
 
         response = self.client.get("/monitoring/sessions/1/")
@@ -124,10 +124,10 @@ class SessionViewsTest(APITestCase):
     def test_get_user_sessions_unauthorized(self):
         """Test that users can't access other users' sessions."""
         # Mock different user
-        other_user = MonitoringUser({"user_id": 2, "email": "other@example.com", "username": "otheruser"})
+        other_user = MonitoringUser({"user_id": "87654321-4321-8765-2109-cba987654321", "email": "other@example.com", "username": "otheruser"})
         self.client.force_authenticate(user=other_user)
 
-        DeveloperSession.objects.create(user_id=1, ide_name="VSCode")
+        DeveloperSession.objects.create(user_id="12345678-1234-5678-9012-123456789abc", ide_name="VSCode")
 
         # Try to access user 1's sessions as user 2
         response = self.client.get("/monitoring/sessions/1/")
@@ -143,7 +143,7 @@ class ActivityViewsTest(APITestCase):
         self.mock_user = MonitoringUser({"user_id": 1, "email": "test@example.com", "username": "testuser"})
         self.client.force_authenticate(user=self.mock_user)
 
-        self.session = DeveloperSession.objects.create(user_id=1, ide_name="VSCode")
+        self.session = DeveloperSession.objects.create(user_id="12345678-1234-5678-9012-123456789abc", ide_name="VSCode")
 
     def test_bulk_activities(self):
         """Test bulk activity upload."""
@@ -188,7 +188,7 @@ class MetricsViewsTest(APITestCase):
         self.mock_user = MonitoringUser({"user_id": 1, "email": "test@example.com", "username": "testuser"})
         self.client.force_authenticate(user=self.mock_user)
 
-        self.session = DeveloperSession.objects.create(user_id=1, ide_name="VSCode")
+        self.session = DeveloperSession.objects.create(user_id="12345678-1234-5678-9012-123456789abc", ide_name="VSCode")
 
     @patch("apps.monitoring.views.RedisClient")
     def test_submit_code_metrics(self, mock_redis):

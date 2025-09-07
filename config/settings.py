@@ -143,6 +143,20 @@ if not USE_SQLITE:
         {"CONN_MAX_AGE": 0, "CONN_HEALTH_CHECKS": True, "OPTIONS": db_options}  # Don't persist connections in serverless
     )
 
+# Test database configuration
+if "test" in sys.argv or "pytest" in sys.modules:
+    # Override database configuration for tests
+    DATABASES["default"]["TEST"] = {
+        "NAME": "test_syncscope_monitoring",
+        "CREATE_DB": True,
+    }
+    
+    # Ensure monitoring schema is used in tests
+    if not USE_SQLITE:
+        test_options = DATABASES["default"].get("OPTIONS", {}).copy()
+        test_options["options"] = "-c search_path=monitoring,public -c statement_timeout=30000"
+        DATABASES["default"]["OPTIONS"] = test_options
+
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
     {

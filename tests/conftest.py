@@ -40,7 +40,7 @@ def api_client():
 def mock_user():
     """Mock user for authentication."""
     return MonitoringUser(
-        {"user_id": 1, "email": "test@example.com", "username": "testuser", "is_staff": False, "is_superuser": False}
+        {"user_id": "12345678-1234-5678-9012-123456789abc", "email": "test@example.com", "username": "testuser", "is_staff": False, "is_superuser": False}
     )
 
 
@@ -48,7 +48,7 @@ def mock_user():
 def admin_user():
     """Mock admin user for authentication."""
     return MonitoringUser(
-        {"user_id": 2, "email": "admin@example.com", "username": "adminuser", "is_staff": True, "is_superuser": True}
+        {"user_id": "87654321-4321-8765-2109-cba987654321", "email": "admin@example.com", "username": "adminuser", "is_staff": True, "is_superuser": True}
     )
 
 
@@ -70,7 +70,7 @@ def admin_client(api_client, admin_user):
 def developer_session(db):
     """Create a test developer session."""
     return DeveloperSession.objects.create(
-        user_id=1,
+        user_id="12345678-1234-5678-9012-123456789abc",
         ide_name="VSCode",
         ide_version="1.85.0",
         project_path="/home/user/test-project",
@@ -89,7 +89,7 @@ def completed_session(db):
     end_time = start_time + timedelta(hours=1)
 
     return DeveloperSession.objects.create(
-        user_id=1,
+        user_id="12345678-1234-5678-9012-123456789abc",
         session_start=start_time,
         session_end=end_time,
         session_duration_minutes=60,
@@ -105,7 +105,7 @@ def expired_session(db):
     """Create an expired test session."""
     start_time = timezone.now() - timedelta(hours=25)  # Older than 24 hours
 
-    return DeveloperSession.objects.create(user_id=1, session_start=start_time, ide_name="Vim", operating_system="Linux")
+    return DeveloperSession.objects.create(user_id="12345678-1234-5678-9012-123456789abc", session_start=start_time, ide_name="Vim", operating_system="Linux")
 
 
 @pytest.fixture
@@ -165,7 +165,7 @@ def multiple_sessions(db):
         duration = 60 if end_time else None
 
         session = DeveloperSession.objects.create(
-            user_id=1,
+            user_id="12345678-1234-5678-9012-123456789abc",
             session_start=start_time,
             session_end=end_time,
             session_duration_minutes=duration,
@@ -289,10 +289,10 @@ class MonitoringTestCase(TestCase):
     def setUp(self):
         """Set up test data."""
         self.client = APIClient()
-        self.mock_user = MonitoringUser({"user_id": 1, "email": "test@example.com", "username": "testuser"})
+        self.mock_user = MonitoringUser({"user_id": "12345678-1234-5678-9012-123456789abc", "email": "test@example.com", "username": "testuser"})
         self.client.force_authenticate(user=self.mock_user)
 
-    def create_test_session(self, user_id=1, active=True):
+    def create_test_session(self, user_id="12345678-1234-5678-9012-123456789abc", active=True):
         """Helper method to create a test session."""
         start_time = timezone.now() - timedelta(minutes=30)
         end_time = None if active else timezone.now() - timedelta(minutes=10)

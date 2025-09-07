@@ -16,8 +16,9 @@ class DeveloperSessionModelTest(TestCase):
     """Tests for DeveloperSession model."""
 
     def setUp(self):
+        self.test_user_id = uuid.UUID("12345678-1234-5678-9012-123456789abc")
         self.session_data = {
-            "user_id": 1,
+            "user_id": self.test_user_id,
             "ide_name": "VSCode",
             "ide_version": "1.85.0",
             "project_path": "/home/user/project",
@@ -33,7 +34,7 @@ class DeveloperSessionModelTest(TestCase):
         session = DeveloperSession.objects.create(**self.session_data)
 
         self.assertIsInstance(session.session_id, uuid.UUID)
-        self.assertEqual(session.user_id, 1)
+        self.assertEqual(session.user_id, self.test_user_id)
         self.assertEqual(session.ide_name, "VSCode")
         self.assertTrue(session.is_active)
         self.assertIsNone(session.session_duration_minutes)
@@ -72,7 +73,7 @@ class ActivityLogModelTest(TestCase):
     """Tests for ActivityLog model."""
 
     def setUp(self):
-        self.session = DeveloperSession.objects.create(user_id=1, ide_name="VSCode")
+        self.session = DeveloperSession.objects.create(user_id="12345678-1234-5678-9012-123456789abc", ide_name="VSCode")
         self.activity_data = {
             "session": self.session,
             "activity_type": "file_open",
@@ -112,7 +113,7 @@ class CodeMetricsModelTest(TestCase):
     """Tests for CodeMetrics model."""
 
     def setUp(self):
-        self.session = DeveloperSession.objects.create(user_id=1, ide_name="VSCode")
+        self.session = DeveloperSession.objects.create(user_id="12345678-1234-5678-9012-123456789abc", ide_name="VSCode")
         self.metrics_data = {
             "session": self.session,
             "file_path": "/path/to/file.py",
@@ -150,7 +151,7 @@ class GitEventModelTest(TestCase):
     """Tests for GitEvent model."""
 
     def setUp(self):
-        self.session = DeveloperSession.objects.create(user_id=1, ide_name="VSCode")
+        self.session = DeveloperSession.objects.create(user_id="12345678-1234-5678-9012-123456789abc", ide_name="VSCode")
         self.git_data = {
             "session": self.session,
             "event_type": "commit",

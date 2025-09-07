@@ -23,7 +23,7 @@ class ProcessSessionAnalyticsTest(TestCase):
 
     def setUp(self):
         self.session = DeveloperSession.objects.create(
-            user_id=1, ide_name="VSCode", session_end=timezone.now()  # Completed session
+            user_id="12345678-1234-5678-9012-123456789abc", ide_name="VSCode", session_end=timezone.now()  # Completed session
         )
 
         # Create some related data
@@ -64,7 +64,7 @@ class CleanupExpiredSessionsTest(TestCase):
         # Create expired session (older than 24 hours, still active)
         old_time = timezone.now() - timedelta(hours=25)
         self.expired_session = DeveloperSession.objects.create(
-            user_id=1, ide_name="VSCode", session_start=old_time, session_end=None  # Still active
+            user_id="12345678-1234-5678-9012-123456789abc", ide_name="VSCode", session_start=old_time, session_end=None  # Still active
         )
 
         # Create recent session (should not be cleaned up)
@@ -111,7 +111,7 @@ class AggregateUserMetricsTest(TestCase):
         start_of_day = timezone.make_aware(timezone.datetime.combine(today, timezone.datetime.min.time()))
 
         self.session1 = DeveloperSession.objects.create(
-            user_id=1,
+            user_id="12345678-1234-5678-9012-123456789abc",
             ide_name="VSCode",
             session_start=start_of_day + timedelta(hours=1),
             session_end=start_of_day + timedelta(hours=2),
@@ -119,7 +119,7 @@ class AggregateUserMetricsTest(TestCase):
         )
 
         self.session2 = DeveloperSession.objects.create(
-            user_id=1,
+            user_id="12345678-1234-5678-9012-123456789abc",
             ide_name="PyCharm",
             session_start=start_of_day + timedelta(hours=3),
             session_end=start_of_day + timedelta(hours=4),

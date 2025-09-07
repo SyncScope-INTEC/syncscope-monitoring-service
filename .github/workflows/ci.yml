@@ -99,6 +99,9 @@ jobs:
           # Create monitoring schema in PostgreSQL
           PGPASSWORD=postgres psql -h localhost -U postgres -d test_syncscope_monitoring -c "CREATE SCHEMA IF NOT EXISTS monitoring;"
           
+          # Set up test database with proper schema
+          python manage.py setup_test_db
+          
           # Run migrations
           python manage.py migrate
 

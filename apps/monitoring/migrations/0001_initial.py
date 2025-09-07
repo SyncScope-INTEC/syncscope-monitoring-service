@@ -15,6 +15,11 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        # Ensure monitoring schema exists before creating tables
+        migrations.RunSQL(
+            sql="CREATE SCHEMA IF NOT EXISTS monitoring;",
+            reverse_sql="DROP SCHEMA IF EXISTS monitoring CASCADE;",
+        ),
         migrations.CreateModel(
             name='DeveloperSession',
             fields=[
