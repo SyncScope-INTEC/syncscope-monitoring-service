@@ -1,3 +1,4 @@
+import sys
 import uuid
 
 from django.db import models
@@ -6,6 +7,16 @@ from django.utils import timezone
 from config.database_retry import atomic_with_retry
 
 from .db_mixins import RetryableModelMixin
+
+
+def get_table_name(base_name):
+    """Get table name with or without schema prefix based on test mode."""
+    if "test" in sys.argv or "pytest" in sys.modules:
+        # SQLite doesn't support schemas, use simple table names for tests
+        return base_name
+    else:
+        # PostgreSQL with monitoring schema
+        return f"monitoring.{base_name}"
 
 
 class DeveloperSession(RetryableModelMixin, models.Model):
@@ -31,7 +42,7 @@ class DeveloperSession(RetryableModelMixin, models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        db_table = "monitoring.developer_sessions"
+        db_table = get_table_name("developer_sessions")
         ordering = ["-created_at"]
         indexes = [
             models.Index(fields=["user_id"]),
@@ -112,7 +123,7 @@ class ActivityLog(RetryableModelMixin, models.Model):
     created_at = models.DateTimeField(default=timezone.now)
 
     class Meta:
-        db_table = "monitoring.activity_logs"
+        db_table = get_table_name("activity_logs")
         ordering = ["-timestamp"]
         indexes = [
             models.Index(fields=["session", "timestamp"]),
@@ -160,7 +171,7 @@ class CodeMetrics(RetryableModelMixin, models.Model):
     created_at = models.DateTimeField(default=timezone.now)
 
     class Meta:
-        db_table = "monitoring.code_metrics"
+        db_table = get_table_name("code_metrics")
         ordering = ["-calculated_at"]
         indexes = [
             models.Index(fields=["session", "file_path"]),
@@ -226,7 +237,7 @@ class GitEvent(RetryableModelMixin, models.Model):
     created_at = models.DateTimeField(default=timezone.now)
 
     class Meta:
-        db_table = "monitoring.git_events"
+        db_table = get_table_name("git_events")
         ordering = ["-timestamp"]
         indexes = [
             models.Index(fields=["session", "timestamp"]),

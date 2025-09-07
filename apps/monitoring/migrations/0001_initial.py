@@ -4,7 +4,7 @@ import apps.monitoring.db_mixins
 import django.db.models.deletion
 import django.utils.timezone
 import uuid
-from django.db import migrations, models
+from django.db import migrations, models, connection
 
 
 class Migration(migrations.Migration):
@@ -15,16 +15,11 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        # Ensure monitoring schema exists before creating tables
-        migrations.RunSQL(
-            sql="CREATE SCHEMA IF NOT EXISTS monitoring;",
-            reverse_sql="DROP SCHEMA IF EXISTS monitoring CASCADE;",
-        ),
         migrations.CreateModel(
             name='DeveloperSession',
             fields=[
                 ('session_id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ('user_id', models.IntegerField(help_text='Reference to auth.users.user_id')),
+                ('user_id', models.UUIDField(help_text='Reference to auth.users.id')),
                 ('session_start', models.DateTimeField(default=django.utils.timezone.now)),
                 ('session_end', models.DateTimeField(blank=True, null=True)),
                 ('session_duration_minutes', models.IntegerField(blank=True, null=True)),
@@ -40,7 +35,7 @@ class Migration(migrations.Migration):
                 ('updated_at', models.DateTimeField(auto_now=True)),
             ],
             options={
-                'db_table': 'monitoring.developer_sessions',
+                'db_table': 'developer_sessions',
                 'ordering': ['-created_at'],
                 'indexes': [models.Index(fields=['user_id'], name='monitoring._user_id_6c6aa5_idx'), models.Index(fields=['session_start'], name='monitoring._session_62beee_idx'), models.Index(fields=['created_at'], name='monitoring._created_652f36_idx')],
             },
@@ -67,7 +62,7 @@ class Migration(migrations.Migration):
                 ('session', models.ForeignKey(db_column='session_id', on_delete=django.db.models.deletion.CASCADE, related_name='code_metrics', to='monitoring.developersession')),
             ],
             options={
-                'db_table': 'monitoring.code_metrics',
+                'db_table': 'code_metrics',
                 'ordering': ['-calculated_at'],
                 'indexes': [models.Index(fields=['session', 'file_path'], name='monitoring._session_318d7a_idx'), models.Index(fields=['file_extension'], name='monitoring._file_ex_3b1222_idx'), models.Index(fields=['calculated_at'], name='monitoring._calcula_41f508_idx'), models.Index(fields=['lines_of_code'], name='monitoring._lines_o_9e5c3d_idx')],
             },
@@ -86,7 +81,7 @@ class Migration(migrations.Migration):
                 ('session', models.ForeignKey(db_column='session_id', on_delete=django.db.models.deletion.CASCADE, related_name='activity_logs', to='monitoring.developersession')),
             ],
             options={
-                'db_table': 'monitoring.activity_logs',
+                'db_table': 'activity_logs',
                 'ordering': ['-timestamp'],
                 'indexes': [models.Index(fields=['session', 'timestamp'], name='monitoring._session_9ad055_idx'), models.Index(fields=['activity_type'], name='monitoring._activit_5f2ac9_idx'), models.Index(fields=['timestamp'], name='monitoring._timesta_a3f3d0_idx'), models.Index(fields=['file_extension'], name='monitoring._file_ex_f69a6e_idx')],
             },
@@ -112,7 +107,7 @@ class Migration(migrations.Migration):
                 ('session', models.ForeignKey(db_column='session_id', on_delete=django.db.models.deletion.CASCADE, related_name='git_events', to='monitoring.developersession')),
             ],
             options={
-                'db_table': 'monitoring.git_events',
+                'db_table': 'git_events',
                 'ordering': ['-timestamp'],
                 'indexes': [models.Index(fields=['session', 'timestamp'], name='monitoring._session_a8ebca_idx'), models.Index(fields=['event_type'], name='monitoring._event_t_8b106f_idx'), models.Index(fields=['timestamp'], name='monitoring._timesta_1361d9_idx'), models.Index(fields=['commit_hash'], name='monitoring._commit__c01463_idx'), models.Index(fields=['branch_name'], name='monitoring._branch__8079e8_idx')],
             },

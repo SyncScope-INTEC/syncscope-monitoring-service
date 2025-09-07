@@ -65,7 +65,7 @@ class DeveloperSessionModelTest(TestCase):
     def test_string_representation(self):
         """Test string representation of the model."""
         session = DeveloperSession.objects.create(**self.session_data)
-        expected = f"Session {session.session_id} - User 1"
+        expected = f"Session {session.session_id} - User {self.test_user_id}"
         self.assertEqual(str(session), expected)
 
 

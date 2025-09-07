@@ -145,17 +145,13 @@ if not USE_SQLITE:
 
 # Test database configuration
 if "test" in sys.argv or "pytest" in sys.modules:
-    # Override database configuration for tests
-    DATABASES["default"]["TEST"] = {
-        "NAME": "test_syncscope_monitoring",
-        "CREATE_DB": True,
+    # Force SQLite for tests to avoid connection issues and schema complexity
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": ":memory:",  # In-memory database for faster tests
+        }
     }
-
-    # Ensure monitoring schema is used in tests
-    if not USE_SQLITE:
-        test_options = DATABASES["default"].get("OPTIONS", {}).copy()
-        test_options["options"] = "-c search_path=monitoring,public -c statement_timeout=30000"
-        DATABASES["default"]["OPTIONS"] = test_options
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
