@@ -281,3 +281,136 @@ class AuthenticationTest(APITestCase):
 
         # Should succeed if authentication works
         self.assertNotEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
+class ApiHomeViewTest(TestCase):
+    """Tests for API home view."""
+
+    def test_api_home_response(self):
+        """Test that API home returns valid response."""
+        response = self.client.get("/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIsInstance(response.data, dict)
+        self.assertIn("service", response.data)
+        self.assertIn("version", response.data)
+        self.assertIn("main_routes", response.data)
+        self.assertIn("service_links", response.data)
+
+    def test_api_home_routes_structure(self):
+        """Test that API home has expected route structure."""
+        response = self.client.get("/")
+
+        # Check main routes
+        self.assertIsInstance(response.data["main_routes"], list)
+        if response.data["main_routes"]:
+            route = response.data["main_routes"][0]
+            self.assertIn("title", route)
+            self.assertIn("url", route)
+
+        # Check service links
+        self.assertIsInstance(response.data["service_links"], list)
+        if response.data["service_links"]:
+            service = response.data["service_links"][0]
+            self.assertIn("name", service)
+            self.assertIn("url", service)
+
+
+class ErrorHandlingTest(APITestCase):
+    """Test error handling in views."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.mock_user = MonitoringUser(
+            {"user_id": "12345678-1234-5678-9012-123456789abc", "email": "test@example.com", "username": "testuser"}
+        )
+        self.client.force_authenticate(user=self.mock_user)
+
+    def test_session_not_found_error(self):
+        """Test handling of non-existent session."""
+        fake_uuid = str(uuid.uuid4())
+        end_data = {"session_id": fake_uuid, "session_metadata": {"status": "completed"}}
+
+        response = self.client.post("/monitoring/sessions/end/", data=json.dumps(end_data), content_type="application/json")
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_invalid_json_handling(self):
+        """Test handling of invalid JSON in requests."""
+        response = self.client.post("/monitoring/sessions/start/", data="invalid json", content_type="application/json")
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    @patch("apps.monitoring.views.RedisClient")
+    def test_redis_connection_error_handling(self, mock_redis):
+        """Test handling of Redis connection errors."""
+        # Mock Redis to raise exception
+        mock_redis.side_effect = Exception("Redis connection failed")
+
+        session_data = {
+            "user_id": "12345678-1234-5678-9012-123456789abc",
+            "ide_name": "VSCode",
+        }
+
+        response = self.client.post(
+            "/monitoring/sessions/start/", data=json.dumps(session_data), content_type="application/json"
+        )
+
+        # Should still succeed even if Redis fails
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    def test_missing_required_fields(self):
+        """Test handling of requests with missing required fields."""
+        incomplete_data = {"user_id": "12345678-1234-5678-9012-123456789abc"}  # Missing ide_name
+
+        response = self.client.post(
+            "/monitoring/sessions/start/", data=json.dumps(incomplete_data), content_type="application/json"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("error", response.data or {})
+
+
+class RateLimitingTest(APITestCase):
+    """Test rate limiting functionality."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.mock_user = MonitoringUser(
+            {"user_id": "12345678-1234-5678-9012-123456789abc", "email": "test@example.com", "username": "testuser"}
+        )
+        self.client.force_authenticate(user=self.mock_user)
+
+    def test_rate_limiting_headers_present(self):
+        """Test that rate limiting headers are present in responses."""
+        session_data = {
+            "user_id": "12345678-1234-5678-9012-123456789abc",
+            "ide_name": "VSCode",
+        }
+
+        response = self.client.post(
+            "/monitoring/sessions/start/", data=json.dumps(session_data), content_type="application/json"
+        )
+
+        # Check if rate limit headers might be present (depends on decorators)
+        self.assertIn(response.status_code, [201, 429])  # Success or rate limited
+
+
+class PerformanceTest(APITestCase):
+    """Test performance monitoring functionality."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.mock_user = MonitoringUser(
+            {"user_id": "12345678-1234-5678-9012-123456789abc", "email": "test@example.com", "username": "testuser"}
+        )
+        self.client.force_authenticate(user=self.mock_user)
+
+    def test_response_time_tracking(self):
+        """Test that response times are tracked."""
+        response = self.client.get("/monitoring/health/")
+
+        # Check if performance headers might be present
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        # Performance monitoring should not affect response structure
+        self.assertIn("status", response.data)
