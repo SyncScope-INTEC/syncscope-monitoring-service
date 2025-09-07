@@ -367,7 +367,7 @@ def bulk_activities(request):
             name="user_id",
             description="User ID to get sessions for",
             required=True,
-            type=OpenApiTypes.INT,
+            type=OpenApiTypes.UUID,
             location=OpenApiParameter.PATH,
         ),
         OpenApiParameter(

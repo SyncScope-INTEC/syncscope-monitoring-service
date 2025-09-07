@@ -14,13 +14,14 @@ class AuthUser(models.Model):
 
     id = models.UUIDField(primary_key=True)
     email = models.EmailField(unique=True)
-    password = models.CharField(max_length=255)
+    password_hash = models.CharField(max_length=255, db_column='password_hash')
     first_name = models.CharField(max_length=150, blank=True)
     last_name = models.CharField(max_length=150, blank=True)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     is_superuser = models.BooleanField(default=False)
-    date_joined = models.DateTimeField()
+    created_at = models.DateTimeField(db_column='created_at')
+    updated_at = models.DateTimeField(db_column='updated_at')
     last_login = models.DateTimeField(null=True, blank=True)
     timezone = models.CharField(max_length=50, default="UTC")
     role = models.CharField(max_length=20, default="developer")
@@ -36,7 +37,7 @@ class AuthUser(models.Model):
         """
         Check if the provided password matches the user's password.
         """
-        return check_password(raw_password, self.password)
+        return check_password(raw_password, self.password_hash)
 
     def __str__(self):
         return self.email

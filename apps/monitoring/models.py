@@ -15,7 +15,7 @@ class DeveloperSession(RetryableModelMixin, models.Model):
     """
 
     session_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    user_id = models.IntegerField(help_text="Reference to auth.users.user_id")
+    user_id = models.UUIDField(help_text="Reference to auth.users.id")
     session_start = models.DateTimeField(default=timezone.now)
     session_end = models.DateTimeField(null=True, blank=True)
     session_duration_minutes = models.IntegerField(null=True, blank=True)

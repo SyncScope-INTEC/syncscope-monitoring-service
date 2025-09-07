@@ -59,8 +59,9 @@ class SessionStartSerializer(serializers.ModelSerializer):
         ]
 
     def validate_user_id(self, value):
-        if value <= 0:
-            raise serializers.ValidationError("User ID must be a positive integer")
+        # user_id is now a UUID field, so just validate it's not None
+        if value is None:
+            raise serializers.ValidationError("User ID is required")
         return value
 
 

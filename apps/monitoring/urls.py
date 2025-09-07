@@ -13,8 +13,8 @@ urlpatterns = [
     # Session endpoints
     path("sessions/start/", views.start_session, name="start_session"),
     path("sessions/end/", views.end_session, name="end_session"),
-    path("sessions/<int:user_id>/", views.get_user_sessions, name="get_user_sessions"),
-    path("sessions/<int:user_id>/stats/", SessionStatsView.as_view(), name="session_stats"),
+    path("sessions/<uuid:user_id>/", views.get_user_sessions, name="get_user_sessions"),
+    path("sessions/<uuid:user_id>/stats/", SessionStatsView.as_view(), name="session_stats"),
     # Activity endpoints
     path("activities/bulk/", views.bulk_activities, name="bulk_activities"),
     # Metrics endpoints

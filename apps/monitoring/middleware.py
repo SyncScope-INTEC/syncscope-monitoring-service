@@ -116,6 +116,19 @@ class SecurityHeadersMiddleware(MiddlewareMixin):
                 "frame-ancestors 'none'; "
                 "base-uri 'self'"
             )
+        elif request.path.startswith("/api/docs/") or request.path.startswith("/api/redoc/"):
+            # Allow external CDN resources for Swagger UI and ReDoc
+            response["Content-Security-Policy"] = (
+                "default-src 'self'; "
+                "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+                "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+                "img-src 'self' data: https://cdn.jsdelivr.net; "
+                "font-src 'self' https://cdn.jsdelivr.net; "
+                "connect-src 'self'; "
+                "worker-src 'self' blob:; "
+                "frame-ancestors 'none'; "
+                "base-uri 'self'"
+            )
         else:
             # Stricter CSP for API endpoints
             response["Content-Security-Policy"] = "default-src 'none'; " "frame-ancestors 'none'; " "base-uri 'none'"

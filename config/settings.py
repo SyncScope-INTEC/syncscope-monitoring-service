@@ -178,9 +178,9 @@ STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 # Default primary key field type
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# Authentication backends for admin integration with shared database
+# Authentication backends for admin integration with auth service API
 AUTHENTICATION_BACKENDS = [
-    "apps.monitoring.database_auth_backend.CachedSharedDatabaseAuthBackend",
+    "apps.monitoring.database_auth_backend.CachedAuthServiceAPIBackend",
     "django.contrib.auth.backends.ModelBackend",  # Fallback for local users
 ]
 
@@ -205,7 +205,7 @@ REST_FRAMEWORK = {
 # CORS settings
 CORS_ALLOWED_ORIGINS = config("CORS_ALLOWED_ORIGINS", default="http://localhost:3000,http://127.0.0.1:3000").split(",")
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOW_ALL_ORIGINS = config("CORS_ALLOW_ALL_ORIGINS", default=False, cast=bool) and DEBUG
+CORS_ALLOW_ALL_ORIGINS = config("CORS_ALLOW_ALL_ORIGINS", default=True, cast=bool) and DEBUG
 CORS_ALLOWED_ORIGIN_REGEXES = [
     r"^https://.*\.railway\.app$",  # Railway deployment domains
     r"^http://localhost:\d+$",  # Local development
@@ -328,13 +328,20 @@ if DEBUG or os.access("/app", os.W_OK):
         if logger_name in LOGGING["loggers"]:
             LOGGING["loggers"][logger_name]["handlers"].extend(["structured_file", "file"])
 
-# Cache configuration (Redis)
+# Cache configuration (Redis with fallback)
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
         "LOCATION": config("REDIS_URL", default="redis://127.0.0.1:6379/1"),
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            "CONNECTION_POOL_KWARGS": {
+                "retry_on_timeout": True,
+                "socket_connect_timeout": 5,
+                "socket_timeout": 5,
+                "health_check_interval": 30,
+            },
+            "IGNORE_EXCEPTIONS": True,  # Gracefully handle Redis failures
         },
         "KEY_PREFIX": "syncscope_monitoring",
         "TIMEOUT": 300,
@@ -344,42 +351,13 @@ CACHES = {
 # API Documentation (Swagger/OpenAPI)
 SPECTACULAR_SETTINGS = {
     "TITLE": "SyncScope Monitoring Service API",
-    "DESCRIPTION": """
-    Developer activity monitoring and metrics collection service for SyncScope platform.
-    
-    This service provides endpoints for:
-    - Managing developer monitoring sessions
-    - Recording developer activities and code metrics
-    - Tracking Git events and repository interactions
-    - Bulk data upload for performance optimization
-    - Real-time session management with Redis caching
-    
-    ## Authentication
-    All endpoints (except health checks) require JWT authentication via the Authorization header:
-    ```
-    Authorization: Bearer <your-jwt-token>
-    ```
-    
-    ## Rate Limiting
-    Different endpoints have different rate limits:
-    - Sessions: 50 requests per hour per user
-    - Activities: 200 requests per hour per user
-    - Metrics: 500 requests per hour per user
-    - Git Events: 100 requests per hour per user
-    
-    ## Data Models
-    The service tracks:
-    - **Sessions**: Developer coding sessions with IDE and project information
-    - **Activities**: Individual developer actions (file open, edit, save, etc.)
-    - **Code Metrics**: Lines of code, complexity, and code quality metrics
-    - **Git Events**: Git operations (commit, push, pull, merge, etc.)
-    """,
+    "DESCRIPTION": "SyncScope Monitoring Service API",
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
     "COMPONENT_SPLIT_REQUEST": True,
-    "SCHEMA_PATH_PREFIX": "/monitoring/",
     "SERVERS": [
-        {"url": "http://localhost:8002", "description": "Local development server"},
+        {"url": "http://localhost:8000", "description": "Local development server"},
+        {"url": "http://127.0.0.1:8000", "description": "Local development server (127.0.0.1)"},
         {"url": "https://syncscope-monitoring-service-dev.up.railway.app", "description": "Development server"},
         {"url": "https://syncscope-monitoring-service-prod.up.railway.app", "description": "Production server"},
     ],
