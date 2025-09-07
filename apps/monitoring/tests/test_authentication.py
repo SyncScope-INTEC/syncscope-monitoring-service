@@ -160,7 +160,7 @@ class JWTAuthenticationTest(TestCase):
         with self.assertRaises(AuthenticationFailed) as context:
             self.auth.authenticate(request)
 
-        self.assertEqual(str(context.exception), "Invalid token")
+        self.assertEqual(str(context.exception), "Token verification failed")
 
     @patch("apps.monitoring.authentication.ServiceAuthManager")
     def test_authenticate_service_error(self, mock_auth_manager):
