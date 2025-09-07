@@ -34,11 +34,11 @@ class SessionViewsTest(APITestCase):
     def setUp(self):
         self.client = APIClient()
         # Mock user for authentication
-        self.mock_user = MonitoringUser({"user_id": 1, "email": "test@example.com", "username": "testuser"})
+        self.mock_user = MonitoringUser({"user_id": "12345678-1234-5678-9012-123456789abc", "email": "test@example.com", "username": "testuser"})
         self.client.force_authenticate(user=self.mock_user)
 
         self.session_data = {
-            "user_id": 1,
+            "user_id": "12345678-1234-5678-9012-123456789abc",
             "ide_name": "VSCode",
             "ide_version": "1.85.0",
             "project_path": "/home/user/project",
@@ -60,12 +60,12 @@ class SessionViewsTest(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertIn("session_id", response.data)
-        self.assertEqual(response.data["user_id"], 1)
+        self.assertEqual(response.data["user_id"], "12345678-1234-5678-9012-123456789abc")
         self.assertEqual(response.data["ide_name"], "VSCode")
 
         # Verify session was created in database
         session = DeveloperSession.objects.get(session_id=response.data["session_id"])
-        self.assertEqual(session.user_id, 1)
+        self.assertEqual(str(session.user_id), "12345678-1234-5678-9012-123456789abc")
         self.assertTrue(session.is_active)
 
         # Verify Redis cache was called
@@ -111,11 +111,11 @@ class SessionViewsTest(APITestCase):
     def test_get_user_sessions(self):
         """Test retrieving user sessions."""
         # Create test sessions
-        session1 = DeveloperSession.objects.create(user_id=1, ide_name="VSCode")
-        session2 = DeveloperSession.objects.create(user_id=1, ide_name="PyCharm")
-        session3 = DeveloperSession.objects.create(user_id=2, ide_name="VSCode")  # Different user
+        session1 = DeveloperSession.objects.create(user_id="12345678-1234-5678-9012-123456789abc", ide_name="VSCode")
+        session2 = DeveloperSession.objects.create(user_id="12345678-1234-5678-9012-123456789abc", ide_name="PyCharm")
+        session3 = DeveloperSession.objects.create(user_id="87654321-4321-8765-2109-cba987654321", ide_name="VSCode")  # Different user
 
-        response = self.client.get("/monitoring/sessions/1/")
+        response = self.client.get("/monitoring/sessions/12345678-1234-5678-9012-123456789abc/")
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["count"], 2)  # Only user 1's sessions
@@ -124,13 +124,13 @@ class SessionViewsTest(APITestCase):
     def test_get_user_sessions_unauthorized(self):
         """Test that users can't access other users' sessions."""
         # Mock different user
-        other_user = MonitoringUser({"user_id": 2, "email": "other@example.com", "username": "otheruser"})
+        other_user = MonitoringUser({"user_id": "87654321-4321-8765-2109-cba987654321", "email": "other@example.com", "username": "otheruser"})
         self.client.force_authenticate(user=other_user)
 
-        DeveloperSession.objects.create(user_id=1, ide_name="VSCode")
+        DeveloperSession.objects.create(user_id="12345678-1234-5678-9012-123456789abc", ide_name="VSCode")
 
         # Try to access user 1's sessions as user 2
-        response = self.client.get("/monitoring/sessions/1/")
+        response = self.client.get("/monitoring/sessions/12345678-1234-5678-9012-123456789abc/")
 
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
@@ -140,10 +140,10 @@ class ActivityViewsTest(APITestCase):
 
     def setUp(self):
         self.client = APIClient()
-        self.mock_user = MonitoringUser({"user_id": 1, "email": "test@example.com", "username": "testuser"})
+        self.mock_user = MonitoringUser({"user_id": "12345678-1234-5678-9012-123456789abc", "email": "test@example.com", "username": "testuser"})
         self.client.force_authenticate(user=self.mock_user)
 
-        self.session = DeveloperSession.objects.create(user_id=1, ide_name="VSCode")
+        self.session = DeveloperSession.objects.create(user_id="12345678-1234-5678-9012-123456789abc", ide_name="VSCode")
 
     def test_bulk_activities(self):
         """Test bulk activity upload."""
@@ -185,10 +185,10 @@ class MetricsViewsTest(APITestCase):
 
     def setUp(self):
         self.client = APIClient()
-        self.mock_user = MonitoringUser({"user_id": 1, "email": "test@example.com", "username": "testuser"})
+        self.mock_user = MonitoringUser({"user_id": "12345678-1234-5678-9012-123456789abc", "email": "test@example.com", "username": "testuser"})
         self.client.force_authenticate(user=self.mock_user)
 
-        self.session = DeveloperSession.objects.create(user_id=1, ide_name="VSCode")
+        self.session = DeveloperSession.objects.create(user_id="12345678-1234-5678-9012-123456789abc", ide_name="VSCode")
 
     @patch("apps.monitoring.views.RedisClient")
     def test_submit_code_metrics(self, mock_redis):
@@ -262,7 +262,7 @@ class AuthenticationTest(APITestCase):
         # Mock successful token verification
         mock_manager_instance = MagicMock()
         mock_manager_instance.verify_user_token.return_value = {
-            "user_id": 1,
+            "user_id": "12345678-1234-5678-9012-123456789abc",
             "email": "test@example.com",
             "username": "testuser",
         }
@@ -271,7 +271,7 @@ class AuthenticationTest(APITestCase):
         # Set Authorization header
         self.client.credentials(HTTP_AUTHORIZATION="Bearer valid-jwt-token")
 
-        response = self.client.get("/monitoring/sessions/1/")
+        response = self.client.get("/monitoring/sessions/12345678-1234-5678-9012-123456789abc/")
 
         # Should succeed if authentication works
         self.assertNotEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)

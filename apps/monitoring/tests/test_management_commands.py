@@ -3,6 +3,7 @@ Tests for Django management commands.
 """
 
 import io
+import uuid
 from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
