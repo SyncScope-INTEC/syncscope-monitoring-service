@@ -178,7 +178,8 @@ class GenerateTestDataCommandTest(TestCase):
     def test_generate_test_data_clean_option(self):
         """Test test data generation with clean option."""
         # Create some initial data
-        DeveloperSession.objects.create(user_id=999, ide_name="Test IDE")
+        initial_uuid = uuid.UUID("99999999-9999-9999-9999-999999999999")
+        DeveloperSession.objects.create(user_id=initial_uuid, ide_name="Test IDE")
         initial_count = DeveloperSession.objects.count()
         self.assertGreater(initial_count, 0)
 
@@ -190,7 +191,8 @@ class GenerateTestDataCommandTest(TestCase):
 
         # Check that it's new data (different user_id)
         session = DeveloperSession.objects.first()
-        self.assertEqual(session.user_id, 1)
+        expected_uuid = uuid.UUID("00000000-0000-0000-0000-000000000001")
+        self.assertEqual(session.user_id, expected_uuid)
 
         output = out.getvalue()
         self.assertIn("Cleaning existing test data...", output)

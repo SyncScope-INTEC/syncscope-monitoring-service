@@ -18,7 +18,7 @@ urlpatterns = [
     # Simple health check for debugging
     path("simple-health/", simple_health_check, name="simple_health"),
     path("admin/", admin.site.urls),
-    path("", include("apps.monitoring.urls")),  # Include monitoring URLs at root level
+    path("monitoring/", include("apps.monitoring.urls")),  # Include monitoring URLs with prefix
     # API Documentation
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),

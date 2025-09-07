@@ -53,8 +53,11 @@ class Command(BaseCommand):
 
         total_created = {"sessions": 0, "activities": 0, "metrics": 0, "git_events": 0}
 
-        for user_id in range(1, users_count + 1):
-            self.stdout.write(f"  User {user_id}: ", ending="")
+        # Generate UUID list for consistent user IDs
+        user_uuids = [uuid.UUID(f"00000000-0000-0000-0000-{str(i).zfill(12)}") for i in range(1, users_count + 1)]
+
+        for i, user_id in enumerate(user_uuids, 1):
+            self.stdout.write(f"  User {i} ({user_id}): ", ending="")
 
             user_sessions = 0
             user_activities = 0
@@ -82,8 +85,8 @@ class Command(BaseCommand):
                     session_duration_minutes=duration_minutes,
                     ide_name=ide_name,
                     ide_version=ide_version,
-                    project_path=f"/home/user{user_id}/project{session_num + 1}",
-                    git_repository_url=f"https://github.com/user{user_id}/repo{session_num + 1}.git",
+                    project_path=f"/home/user{i}/project{session_num + 1}",
+                    git_repository_url=f"https://github.com/user{i}/repo{session_num + 1}.git",
                     git_branch=random.choice(["main", "develop", "feature/new-feature"]),
                     git_commit_hash=f"{random.randint(100000, 999999):06x}",
                     operating_system=random.choice(["Linux", "macOS", "Windows"]),
@@ -145,8 +148,8 @@ class Command(BaseCommand):
                         branch_name=random.choice(["main", "develop", "feature/test"]),
                         insertions=random.randint(1, 100),
                         deletions=random.randint(0, 50),
-                        author_name=f"User {user_id}",
-                        author_email=f"user{user_id}@example.com",
+                        author_name=f"User {i}",
+                        author_email=f"user{i}@example.com",
                     )
                     user_git_events += 1
 

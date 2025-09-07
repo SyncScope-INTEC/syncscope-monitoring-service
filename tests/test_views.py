@@ -62,12 +62,12 @@ class SessionViewsTest(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertIn("session_id", response.data)
-        self.assertEqual(response.data["user_id"], 1)
+        self.assertEqual(response.data["user_id"], "12345678-1234-5678-9012-123456789abc")
         self.assertEqual(response.data["ide_name"], "VSCode")
 
         # Verify session was created in database
         session = DeveloperSession.objects.get(session_id=response.data["session_id"])
-        self.assertEqual(session.user_id, 1)
+        self.assertEqual(str(session.user_id), "12345678-1234-5678-9012-123456789abc")
         self.assertTrue(session.is_active)
 
         # Verify Redis cache was called
@@ -115,9 +115,11 @@ class SessionViewsTest(APITestCase):
         # Create test sessions
         session1 = DeveloperSession.objects.create(user_id="12345678-1234-5678-9012-123456789abc", ide_name="VSCode")
         session2 = DeveloperSession.objects.create(user_id="12345678-1234-5678-9012-123456789abc", ide_name="PyCharm")
-        session3 = DeveloperSession.objects.create(user_id=2, ide_name="VSCode")  # Different user
+        session3 = DeveloperSession.objects.create(
+            user_id="87654321-4321-8765-2109-cba987654321", ide_name="VSCode"
+        )  # Different user
 
-        response = self.client.get("/monitoring/sessions/1/")
+        response = self.client.get("/monitoring/sessions/12345678-1234-5678-9012-123456789abc/")
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["count"], 2)  # Only user 1's sessions
@@ -134,7 +136,7 @@ class SessionViewsTest(APITestCase):
         DeveloperSession.objects.create(user_id="12345678-1234-5678-9012-123456789abc", ide_name="VSCode")
 
         # Try to access user 1's sessions as user 2
-        response = self.client.get("/monitoring/sessions/1/")
+        response = self.client.get("/monitoring/sessions/12345678-1234-5678-9012-123456789abc/")
 
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
@@ -275,7 +277,7 @@ class AuthenticationTest(APITestCase):
         # Set Authorization header
         self.client.credentials(HTTP_AUTHORIZATION="Bearer valid-jwt-token")
 
-        response = self.client.get("/monitoring/sessions/1/")
+        response = self.client.get("/monitoring/sessions/12345678-1234-5678-9012-123456789abc/")
 
         # Should succeed if authentication works
         self.assertNotEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
