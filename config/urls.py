@@ -9,7 +9,7 @@ from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 
 from apps.monitoring.debug_views import test_auth_service, test_settings
-from apps.monitoring.health import simple_health_check, health_check
+from apps.monitoring.health import health_check, simple_health_check
 from apps.monitoring.views import api_home
 
 urlpatterns = [
