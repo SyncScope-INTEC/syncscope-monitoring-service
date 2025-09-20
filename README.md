@@ -1,5 +1,10 @@
 # SyncScope Monitoring Service
 
+[![Build Status](https://github.com/AlejandroBeltre/syncscope-monitoring-service/workflows/CI/badge.svg)](https://github.com/AlejandroBeltre/syncscope-monitoring-service/actions)
+[![Coverage Status](https://coveralls.io/repos/github/AlejandroBeltre/syncscope-monitoring-service/badge.svg?branch=main)](https://coveralls.io/github/AlejandroBeltre/syncscope-monitoring-service?branch=main)
+[![Python Version](https://img.shields.io/badge/python-3.11+-blue.svg)](https://python.org)
+[![Django Version](https://img.shields.io/badge/django-4.2+-green.svg)](https://djangoproject.com)
+
 Real-time developer activity monitoring and metrics collection service for the SyncScope developer productivity platform.
 
 ## Overview
