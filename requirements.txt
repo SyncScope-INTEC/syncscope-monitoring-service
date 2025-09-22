@@ -17,7 +17,7 @@ cron_descriptor==2.0.6
 dj-database-url==3.0.1
 Django==5.2.5
 django-celery-beat==2.8.1
-django-cors-headers==4.8.0
+django-cors-headers==4.9.0
 django-extensions==4.1
 django-ratelimit==4.1.0
 django-redis==6.0.0
