@@ -1,7 +1,7 @@
 # SyncScope Monitoring Service
 
-[![Build Status](https://github.com/SyncScope-INTEC/syncscope-monitoring-service/workflows/CI/badge.svg)](https://github.com/SyncScope-INTEC/syncscope-monitoring-service/actions)
-[![Coverage Status](https://coveralls.io/repos/github/SyncScope-INTEC/syncscope-monitoring-service/badge.svg?branch=main)](https://coveralls.io/github/SyncScope-INTEC/syncscope-monitoring-service?branch=main)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Status](https://img.shields.io/badge/status-development-orange.svg)](https://github.com/SyncScope-INTEC/syncscope-monitoring-service)
 [![Python Version](https://img.shields.io/badge/python-3.11+-blue.svg)](https://python.org)
 [![Django Version](https://img.shields.io/badge/django-4.2+-green.svg)](https://djangoproject.com)
 
@@ -13,16 +13,16 @@ The Monitoring Service is a core component of SyncScope that captures and proces
 
 ## Features
 
-- 🔍 **Real-time Activity Monitoring**: Track developer actions like file opens, edits, saves, and debugging
-- 📊 **Code Metrics Collection**: Gather lines of code, complexity metrics, and quality indicators
-- 🔄 **Git Event Tracking**: Monitor commits, pushes, pulls, merges, and repository interactions
-- ⏱️ **Session Management**: Track coding sessions with IDE and project context
-- 📈 **Bulk Data Processing**: Optimized endpoints for high-volume data ingestion
-- 🛡️ **JWT Authentication**: Secure integration with SyncScope Auth Service
-- 🚀 **Performance Optimized**: Redis caching and serverless-ready architecture
-- 📋 **Health Monitoring**: Comprehensive health checks and monitoring endpoints
-- 🐳 **Docker Support**: Containerized deployment ready
-- 🧪 **Comprehensive Testing**: Full test suite with performance benchmarks
+- **Real-time Activity Monitoring**: Track developer actions like file opens, edits, saves, and debugging
+- **Code Metrics Collection**: Gather lines of code, complexity metrics, and quality indicators
+- **Git Event Tracking**: Monitor commits, pushes, pulls, merges, and repository interactions
+- **Session Management**: Track coding sessions with IDE and project context
+- **Bulk Data Processing**: Optimized endpoints for high-volume data ingestion
+- **JWT Authentication**: Secure integration with SyncScope Auth Service
+- **Performance Optimized**: Redis caching and serverless-ready architecture
+- **Health Monitoring**: Comprehensive health checks and monitoring endpoints
+- **Docker Support**: Containerized deployment ready
+- **Comprehensive Testing**: Full test suite with performance benchmarks
 
 ## Architecture & Service Integration
 
