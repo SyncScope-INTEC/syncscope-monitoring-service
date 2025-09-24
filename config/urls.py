@@ -20,9 +20,6 @@ urlpatterns = [
     path("simple-health/", simple_health_check, name="simple_health"),
     path("admin/", admin.site.urls),
     path("monitoring/", include("apps.monitoring.urls")),  # Include monitoring URLs with prefix
-    # API endpoints for Analytics Service integration
-    path("api/sessions/", api_get_sessions, name="api_sessions"),
-    path("api/code-metrics/", api_get_code_metrics, name="api_code_metrics"),
     # API Documentation
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
