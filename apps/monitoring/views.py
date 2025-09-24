@@ -572,6 +572,7 @@ def record_git_event(request):
 
 # Additional API endpoints for Analytics Service integration
 
+
 @extend_schema(
     tags=["API - Sessions"],
     parameters=[
@@ -580,7 +581,7 @@ def record_git_event(request):
         OpenApiParameter("end_date", OpenApiTypes.DATETIME, description="End date for filtering"),
     ],
     responses={200: {"description": "List of user sessions"}},
-    description="Get user sessions for analytics - API endpoint"
+    description="Get user sessions for analytics - API endpoint",
 )
 @api_view(["GET"])
 @permission_classes([AllowAny])  # For service-to-service communication
@@ -597,20 +598,19 @@ def api_get_sessions(request):
             queryset = queryset.filter(user_id=user_id)
         if start_date:
             from dateutil.parser import parse
+
             start_date_parsed = parse(start_date)
             queryset = queryset.filter(session_start__gte=start_date_parsed)
         if end_date:
             from dateutil.parser import parse
+
             end_date_parsed = parse(end_date)
             queryset = queryset.filter(session_start__lte=end_date_parsed)
 
-        sessions = queryset.order_by('-session_start')[:100]  # Limit to 100 recent sessions
+        sessions = queryset.order_by("-session_start")[:100]  # Limit to 100 recent sessions
         serializer = DeveloperSessionSerializer(sessions, many=True)
 
-        return Response({
-            "sessions": serializer.data,
-            "count": len(serializer.data)
-        }, status=status.HTTP_200_OK)
+        return Response({"sessions": serializer.data, "count": len(serializer.data)}, status=status.HTTP_200_OK)
 
     except Exception as e:
         logger.error(f"Error getting sessions for analytics: {e}")
@@ -626,7 +626,7 @@ def api_get_sessions(request):
         OpenApiParameter("end_date", OpenApiTypes.DATETIME, description="End date for filtering"),
     ],
     responses={200: {"description": "List of code metrics"}},
-    description="Get code metrics for analytics - API endpoint"
+    description="Get code metrics for analytics - API endpoint",
 )
 @api_view(["GET"])
 @permission_classes([AllowAny])  # For service-to-service communication
@@ -648,20 +648,19 @@ def api_get_code_metrics(request):
             queryset = queryset.filter(session__project_path__icontains=project_id)
         if start_date:
             from dateutil.parser import parse
+
             start_date_parsed = parse(start_date)
             queryset = queryset.filter(calculated_at__gte=start_date_parsed)
         if end_date:
             from dateutil.parser import parse
+
             end_date_parsed = parse(end_date)
             queryset = queryset.filter(calculated_at__lte=end_date_parsed)
 
-        metrics = queryset.order_by('-calculated_at')[:100]  # Limit to 100 recent metrics
+        metrics = queryset.order_by("-calculated_at")[:100]  # Limit to 100 recent metrics
         serializer = CodeMetricsSerializer(metrics, many=True)
 
-        return Response({
-            "results": serializer.data,
-            "count": len(serializer.data)
-        }, status=status.HTTP_200_OK)
+        return Response({"results": serializer.data, "count": len(serializer.data)}, status=status.HTTP_200_OK)
 
     except Exception as e:
         logger.error(f"Error getting code metrics for analytics: {e}")
