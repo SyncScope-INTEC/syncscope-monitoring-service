@@ -568,3 +568,101 @@ def record_git_event(request):
     except Exception as e:
         logger.error(f"Error recording git event: {e}")
         return Response({"error": "Failed to record git event"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# Additional API endpoints for Analytics Service integration
+
+@extend_schema(
+    tags=["API - Sessions"],
+    parameters=[
+        OpenApiParameter("user_id", OpenApiTypes.STR, description="User ID to filter sessions"),
+        OpenApiParameter("start_date", OpenApiTypes.DATETIME, description="Start date for filtering"),
+        OpenApiParameter("end_date", OpenApiTypes.DATETIME, description="End date for filtering"),
+    ],
+    responses={200: {"description": "List of user sessions"}},
+    description="Get user sessions for analytics - API endpoint"
+)
+@api_view(["GET"])
+@permission_classes([AllowAny])  # For service-to-service communication
+def api_get_sessions(request):
+    """Get user sessions for analytics service integration."""
+    try:
+        user_id = request.GET.get("user_id")
+        start_date = request.GET.get("start_date")
+        end_date = request.GET.get("end_date")
+
+        queryset = DeveloperSession.objects.all()
+
+        if user_id:
+            queryset = queryset.filter(user_id=user_id)
+        if start_date:
+            from dateutil.parser import parse
+            start_date_parsed = parse(start_date)
+            queryset = queryset.filter(session_start__gte=start_date_parsed)
+        if end_date:
+            from dateutil.parser import parse
+            end_date_parsed = parse(end_date)
+            queryset = queryset.filter(session_start__lte=end_date_parsed)
+
+        sessions = queryset.order_by('-session_start')[:100]  # Limit to 100 recent sessions
+        serializer = DeveloperSessionSerializer(sessions, many=True)
+
+        return Response({
+            "sessions": serializer.data,
+            "count": len(serializer.data)
+        }, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        logger.error(f"Error getting sessions for analytics: {e}")
+        return Response({"error": "Failed to get sessions"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@extend_schema(
+    tags=["API - Code Metrics"],
+    parameters=[
+        OpenApiParameter("user_id", OpenApiTypes.STR, description="User ID to filter metrics"),
+        OpenApiParameter("project_id", OpenApiTypes.STR, description="Project ID to filter metrics"),
+        OpenApiParameter("start_date", OpenApiTypes.DATETIME, description="Start date for filtering"),
+        OpenApiParameter("end_date", OpenApiTypes.DATETIME, description="End date for filtering"),
+    ],
+    responses={200: {"description": "List of code metrics"}},
+    description="Get code metrics for analytics - API endpoint"
+)
+@api_view(["GET"])
+@permission_classes([AllowAny])  # For service-to-service communication
+def api_get_code_metrics(request):
+    """Get code metrics for analytics service integration."""
+    try:
+        user_id = request.GET.get("user_id")
+        project_id = request.GET.get("project_id")
+        start_date = request.GET.get("start_date")
+        end_date = request.GET.get("end_date")
+
+        queryset = CodeMetrics.objects.all()
+
+        if user_id:
+            # Filter by sessions that belong to the user
+            queryset = queryset.filter(session__user_id=user_id)
+        if project_id:
+            # Filter by project path or metadata
+            queryset = queryset.filter(session__project_path__icontains=project_id)
+        if start_date:
+            from dateutil.parser import parse
+            start_date_parsed = parse(start_date)
+            queryset = queryset.filter(recorded_at__gte=start_date_parsed)
+        if end_date:
+            from dateutil.parser import parse
+            end_date_parsed = parse(end_date)
+            queryset = queryset.filter(recorded_at__lte=end_date_parsed)
+
+        metrics = queryset.order_by('-recorded_at')[:100]  # Limit to 100 recent metrics
+        serializer = CodeMetricsSerializer(metrics, many=True)
+
+        return Response({
+            "results": serializer.data,
+            "count": len(serializer.data)
+        }, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        logger.error(f"Error getting code metrics for analytics: {e}")
+        return Response({"error": "Failed to get code metrics"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
