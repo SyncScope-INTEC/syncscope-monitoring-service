@@ -649,13 +649,13 @@ def api_get_code_metrics(request):
         if start_date:
             from dateutil.parser import parse
             start_date_parsed = parse(start_date)
-            queryset = queryset.filter(recorded_at__gte=start_date_parsed)
+            queryset = queryset.filter(calculated_at__gte=start_date_parsed)
         if end_date:
             from dateutil.parser import parse
             end_date_parsed = parse(end_date)
-            queryset = queryset.filter(recorded_at__lte=end_date_parsed)
+            queryset = queryset.filter(calculated_at__lte=end_date_parsed)
 
-        metrics = queryset.order_by('-recorded_at')[:100]  # Limit to 100 recent metrics
+        metrics = queryset.order_by('-calculated_at')[:100]  # Limit to 100 recent metrics
         serializer = CodeMetricsSerializer(metrics, many=True)
 
         return Response({
