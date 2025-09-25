@@ -191,7 +191,6 @@ class HealthMetricsViewTest(APITestCase):
             patch("psutil.cpu_percent") as mock_cpu,
             patch("psutil.disk_usage") as mock_disk,
         ):
-
             mock_db_healthy.return_value = True
             mock_cache_healthy.return_value = True
             mock_memory.return_value = Mock(percent=45.0)

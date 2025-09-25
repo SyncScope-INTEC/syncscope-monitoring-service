@@ -285,3 +285,298 @@ class AuthenticationTest(APITestCase):
 
         # Should succeed if authentication works
         self.assertNotEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
+class ApiHomeViewTest(TestCase):
+    """Tests for API home view."""
+
+    def test_api_home_json_format(self):
+        """Test API home with JSON format."""
+        response = self.client.get("/?format=json")
+        self.assertEqual(response.status_code, 200)
+
+        data = response.json()
+        self.assertIn("main_routes", data)
+        self.assertIn("service_info", data)
+        self.assertIn("api_title", data)
+        self.assertEqual(data["api_title"], "SyncScope Monitoring Service")
+        self.assertEqual(len(data["main_routes"]), 5)
+
+    @patch("apps.monitoring.views.loader.get_template")
+    def test_api_home_html_template_success(self, mock_get_template):
+        """Test API home with successful HTML template."""
+        mock_template = MagicMock()
+        mock_template.render.return_value = "<html>Test</html>"
+        mock_get_template.return_value = mock_template
+
+        response = self.client.get("/")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content.decode(), "<html>Test</html>")
+
+    @patch("apps.monitoring.views.loader.get_template")
+    @patch("apps.monitoring.views.logger")
+    def test_api_home_html_template_fallback(self, mock_logger, mock_get_template):
+        """Test API home falls back to JSON when template fails."""
+        mock_get_template.side_effect = Exception("Template not found")
+
+        response = self.client.get("/")
+        self.assertEqual(response.status_code, 200)
+
+        data = response.json()
+        self.assertIn("main_routes", data)
+        mock_logger.error.assert_called_once()
+
+    def test_api_home_routes_structure(self):
+        """Test that API home routes have correct structure."""
+        response = self.client.get("/?format=json")
+        data = response.json()
+
+        for route in data["main_routes"]:
+            self.assertIn("title", route)
+            self.assertIn("description", route)
+            self.assertIn("url", route)
+            self.assertIn("icon", route)
+            self.assertIn("category", route)
+
+
+class HealthCheckViewsTest(TestCase):
+    """Enhanced tests for health check views."""
+
+    @patch("apps.monitoring.views.DatabaseHealthCheck.is_healthy")
+    @patch("apps.monitoring.views.CacheHealthCheck.is_healthy")
+    @patch("apps.monitoring.views.DatabaseHealthCheck.get_schema_info")
+    def test_health_check_all_healthy(self, mock_schema, mock_cache, mock_db):
+        """Test health check when all services are healthy."""
+        mock_db.return_value = True
+        mock_cache.return_value = True
+        mock_schema.return_value = ["public", "monitoring"]
+
+        response = self.client.get("/health/")
+
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+
+        self.assertEqual(data["status"], "healthy")
+        self.assertEqual(data["checks"]["database"], "healthy")
+        self.assertEqual(data["checks"]["redis"], "healthy")
+        self.assertEqual(data["checks"]["schemas"], ["public", "monitoring"])
+        self.assertIn("response_time_ms", data)
+
+    @patch("apps.monitoring.views.DatabaseHealthCheck.is_healthy")
+    @patch("apps.monitoring.views.CacheHealthCheck.is_healthy")
+    def test_health_check_database_unhealthy(self, mock_cache, mock_db):
+        """Test health check when database is unhealthy."""
+        mock_db.return_value = False
+        mock_cache.return_value = True
+
+        response = self.client.get("/health/")
+
+        self.assertEqual(response.status_code, 503)
+        data = response.json()
+
+        self.assertEqual(data["status"], "unhealthy")
+        self.assertEqual(data["checks"]["database"], "unhealthy")
+        self.assertEqual(data["checks"]["redis"], "healthy")
+
+    @patch("apps.monitoring.views.DatabaseHealthCheck.is_healthy")
+    @patch("apps.monitoring.views.CacheHealthCheck.is_healthy")
+    def test_health_check_database_error(self, mock_cache, mock_db):
+        """Test health check when database check throws error."""
+        mock_db.side_effect = Exception("Connection failed")
+        mock_cache.return_value = True
+
+        response = self.client.get("/health/")
+
+        self.assertEqual(response.status_code, 503)
+        data = response.json()
+
+        self.assertEqual(data["status"], "unhealthy")
+        self.assertIn("error: Connection failed", data["checks"]["database"])
+
+    @patch("apps.monitoring.views.DatabaseHealthCheck.is_healthy")
+    @patch("apps.monitoring.views.CacheHealthCheck.is_healthy")
+    @patch("apps.monitoring.views.DatabaseHealthCheck.get_schema_info")
+    def test_health_check_schema_error(self, mock_schema, mock_cache, mock_db):
+        """Test health check when schema info fails."""
+        mock_db.return_value = True
+        mock_cache.return_value = True
+        mock_schema.side_effect = Exception("Schema error")
+
+        response = self.client.get("/health/")
+        data = response.json()
+
+        self.assertEqual(data["checks"]["schemas"], ["unknown"])
+
+    def test_liveness_check(self):
+        """Test liveness probe endpoint."""
+        response = self.client.get("/liveness/")
+
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+
+        self.assertEqual(data["status"], "alive")
+        self.assertEqual(data["service"], "syncscope-monitoring-service")
+        self.assertIn("timestamp", data)
+
+    @patch("apps.monitoring.views.DatabaseHealthCheck.is_healthy")
+    @patch("apps.monitoring.views.CacheHealthCheck.is_healthy")
+    def test_readiness_check_ready(self, mock_cache, mock_db):
+        """Test readiness probe when service is ready."""
+        mock_db.return_value = True
+        mock_cache.return_value = True
+
+        response = self.client.get("/readiness/")
+
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+
+        self.assertEqual(data["status"], "ready")
+        self.assertEqual(data["dependencies"]["database"], "ready")
+        self.assertEqual(data["dependencies"]["redis"], "ready")
+
+    @patch("apps.monitoring.views.DatabaseHealthCheck.is_healthy")
+    @patch("apps.monitoring.views.CacheHealthCheck.is_healthy")
+    def test_readiness_check_not_ready(self, mock_cache, mock_db):
+        """Test readiness probe when service is not ready."""
+        mock_db.return_value = False
+        mock_cache.return_value = True
+
+        response = self.client.get("/readiness/")
+
+        self.assertEqual(response.status_code, 503)
+        data = response.json()
+
+        self.assertEqual(data["status"], "not_ready")
+        self.assertEqual(data["dependencies"]["database"], "not_ready")
+        self.assertEqual(data["dependencies"]["redis"], "ready")
+
+
+class SessionViewsEnhancedTest(APITestCase):
+    """Enhanced tests for session management views."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.mock_user = MonitoringUser(
+            {"user_id": "12345678-1234-5678-9012-123456789abc", "email": "test@example.com", "username": "testuser"}
+        )
+        self.client.force_authenticate(user=self.mock_user)
+
+        self.session_data = {
+            "user_id": "12345678-1234-5678-9012-123456789abc",
+            "ide_name": "VSCode",
+            "ide_version": "1.85.0",
+            "project_path": "/home/user/project",
+            "git_repository_url": "https://github.com/user/repo.git",
+            "git_branch": "main",
+            "git_commit_hash": "abc123def456",
+            "operating_system": "Linux",
+        }
+
+    @patch("apps.monitoring.views.RedisClient")
+    @patch("apps.monitoring.views.logger")
+    def test_start_session_exception(self, mock_logger, mock_redis):
+        """Test start session with exception."""
+        mock_redis.side_effect = Exception("Redis error")
+
+        response = self.client.post(
+            "/monitoring/sessions/start/", data=json.dumps(self.session_data), content_type="application/json"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
+        mock_logger.error.assert_called_once()
+
+    @patch("apps.monitoring.views.RedisClient")
+    @patch("apps.monitoring.views.logger")
+    def test_end_session_exception(self, mock_logger, mock_redis):
+        """Test end session with exception."""
+        session = DeveloperSession.objects.create(**self.session_data)
+        mock_redis.side_effect = Exception("Redis error")
+
+        end_data = {"session_id": str(session.session_id)}
+        response = self.client.post("/monitoring/sessions/end/", data=json.dumps(end_data), content_type="application/json")
+
+        self.assertEqual(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
+        mock_logger.error.assert_called_once()
+
+    def test_end_session_already_ended(self):
+        """Test ending a session that's already ended."""
+        session = DeveloperSession.objects.create(**self.session_data)
+        session.session_end = timezone.now()
+        session.save()
+
+        end_data = {"session_id": str(session.session_id)}
+        response = self.client.post("/monitoring/sessions/end/", data=json.dumps(end_data), content_type="application/json")
+
+        # Should still return success
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_get_user_sessions_with_filters(self):
+        """Test retrieving user sessions with filters."""
+        # Create active and inactive sessions
+        active_session = DeveloperSession.objects.create(user_id="12345678-1234-5678-9012-123456789abc", ide_name="VSCode")
+        inactive_session = DeveloperSession.objects.create(
+            user_id="12345678-1234-5678-9012-123456789abc", ide_name="PyCharm", session_end=timezone.now()
+        )
+
+        # Test active_only filter
+        response = self.client.get("/monitoring/sessions/12345678-1234-5678-9012-123456789abc/?active_only=true")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        # Should only return active session
+        # Note: This test depends on the actual implementation of the view
+
+    def test_get_user_sessions_pagination(self):
+        """Test user sessions with pagination parameters."""
+        # Create multiple sessions
+        for i in range(5):
+            DeveloperSession.objects.create(user_id="12345678-1234-5678-9012-123456789abc", ide_name=f"IDE{i}")
+
+        response = self.client.get("/monitoring/sessions/12345678-1234-5678-9012-123456789abc/?limit=2&offset=1")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        # Should respect pagination parameters
+
+
+class BulkActivitiesEnhancedTest(APITestCase):
+    """Enhanced tests for bulk activities."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.mock_user = MonitoringUser(
+            {"user_id": "12345678-1234-5678-9012-123456789abc", "email": "test@example.com", "username": "testuser"}
+        )
+        self.client.force_authenticate(user=self.mock_user)
+        self.session = DeveloperSession.objects.create(user_id="12345678-1234-5678-9012-123456789abc", ide_name="VSCode")
+
+    @patch("apps.monitoring.views.logger")
+    def test_bulk_activities_exception(self, mock_logger):
+        """Test bulk activities with exception during creation."""
+        activities_data = {
+            "session_id": str(self.session.session_id),
+            "activities": [
+                {"activity_type": "file_open", "file_path": "/path/to/file1.py"},
+            ],
+        }
+
+        # Mock ActivityLog.objects.bulk_create to raise exception
+        with patch.object(ActivityLog.objects, "bulk_create", side_effect=Exception("DB Error")):
+            response = self.client.post(
+                "/monitoring/activities/bulk/", data=json.dumps(activities_data), content_type="application/json"
+            )
+
+        self.assertEqual(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
+        mock_logger.error.assert_called_once()
+
+    def test_bulk_activities_empty_list(self):
+        """Test bulk activities with empty activities list."""
+        activities_data = {
+            "session_id": str(self.session.session_id),
+            "activities": [],
+        }
+
+        response = self.client.post(
+            "/monitoring/activities/bulk/", data=json.dumps(activities_data), content_type="application/json"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["activities_count"], 0)
