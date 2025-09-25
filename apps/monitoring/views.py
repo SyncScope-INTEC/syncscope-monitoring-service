@@ -665,3 +665,51 @@ def api_get_code_metrics(request):
     except Exception as e:
         logger.error(f"Error getting code metrics for analytics: {e}")
         return Response({"error": "Failed to get code metrics"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# Analytics integration endpoints with proper Swagger tags
+@extend_schema(
+    tags=["Sessions"],
+    summary="Get all user sessions for analytics",
+    description="Get user sessions for analytics - API endpoint",
+    parameters=[
+        OpenApiParameter(name="user_id", description="User ID to filter sessions", type=OpenApiTypes.STR),
+        OpenApiParameter(name="start_date", description="Start date for filtering", type=OpenApiTypes.DATETIME),
+        OpenApiParameter(name="end_date", description="End date for filtering", type=OpenApiTypes.DATETIME),
+    ],
+    responses={
+        200: {
+            "description": "List of user sessions",
+            "content": {"application/json": {"schema": {"description": "List of user sessions"}}},
+        }
+    },
+)
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def get_all_sessions(request):
+    """Get user sessions for analytics - API endpoint"""
+    return api_get_sessions(request)
+
+
+@extend_schema(
+    tags=["Metrics"],
+    summary="Get all code metrics for analytics",
+    description="Get code metrics for analytics - API endpoint",
+    parameters=[
+        OpenApiParameter(name="user_id", description="User ID to filter metrics", type=OpenApiTypes.STR),
+        OpenApiParameter(name="project_id", description="Project ID to filter metrics", type=OpenApiTypes.STR),
+        OpenApiParameter(name="start_date", description="Start date for filtering", type=OpenApiTypes.DATETIME),
+        OpenApiParameter(name="end_date", description="End date for filtering", type=OpenApiTypes.DATETIME),
+    ],
+    responses={
+        200: {
+            "description": "List of code metrics",
+            "content": {"application/json": {"schema": {"description": "List of code metrics"}}},
+        }
+    },
+)
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def get_all_code_metrics(request):
+    """Get code metrics for analytics - API endpoint"""
+    return api_get_code_metrics(request)

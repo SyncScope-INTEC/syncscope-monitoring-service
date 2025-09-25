@@ -15,10 +15,13 @@ urlpatterns = [
     path("sessions/end/", views.end_session, name="end_session"),
     path("sessions/<uuid:user_id>/", views.get_user_sessions, name="get_user_sessions"),
     path("sessions/<uuid:user_id>/stats/", SessionStatsView.as_view(), name="session_stats"),
+    # Analytics integration endpoints - must come after more specific patterns
+    path("sessions/", views.get_all_sessions, name="get_all_sessions"),
     # Activity endpoints
     path("activities/bulk/", views.bulk_activities, name="bulk_activities"),
     # Metrics endpoints
     path("metrics/code/", views.submit_code_metrics, name="submit_code_metrics"),
+    path("code-metrics/", views.get_all_code_metrics, name="get_all_code_metrics"),
     # Events endpoints
     path("events/git/", views.record_git_event, name="record_git_event"),
 ]
