@@ -688,7 +688,34 @@ def api_get_code_metrics(request):
 @permission_classes([AllowAny])
 def get_all_sessions(request):
     """Get user sessions for analytics - API endpoint"""
-    return api_get_sessions(request)
+    try:
+        user_id = request.GET.get("user_id")
+        start_date = request.GET.get("start_date")
+        end_date = request.GET.get("end_date")
+
+        queryset = DeveloperSession.objects.all()
+
+        if user_id:
+            queryset = queryset.filter(user_id=user_id)
+        if start_date:
+            from dateutil.parser import parse
+
+            start_date_parsed = parse(start_date)
+            queryset = queryset.filter(session_start__gte=start_date_parsed)
+        if end_date:
+            from dateutil.parser import parse
+
+            end_date_parsed = parse(end_date)
+            queryset = queryset.filter(session_start__lte=end_date_parsed)
+
+        sessions = queryset.order_by("-session_start")[:100]  # Limit to 100 recent sessions
+        serializer = DeveloperSessionSerializer(sessions, many=True)
+
+        return Response({"sessions": serializer.data, "count": len(serializer.data)}, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        logger.error(f"Error getting sessions for analytics: {e}")
+        return Response({"error": "Failed to get sessions"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @extend_schema(
