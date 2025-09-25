@@ -133,9 +133,9 @@ if not USE_SQLITE:
 
     if use_monitoring_schema:
         # Set search path to include all schemas with monitoring as priority
-        db_options[
-            "options"
-        ] = "-c search_path=monitoring,auth,management,analytics,alerts,audit,public -c statement_timeout=30000"
+        db_options["options"] = (
+            "-c search_path=monitoring,auth,management,analytics,alerts,audit,public -c statement_timeout=30000"
+        )
     else:
         db_options["options"] = "-c statement_timeout=30000"
 
