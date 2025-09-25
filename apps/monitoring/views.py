@@ -739,4 +739,36 @@ def get_all_sessions(request):
 @permission_classes([AllowAny])
 def get_all_code_metrics(request):
     """Get code metrics for analytics - API endpoint"""
-    return api_get_code_metrics(request)
+    try:
+        user_id = request.GET.get("user_id")
+        project_id = request.GET.get("project_id")
+        start_date = request.GET.get("start_date")
+        end_date = request.GET.get("end_date")
+
+        queryset = CodeMetrics.objects.all()
+
+        if user_id:
+            # Filter by sessions that belong to the user
+            queryset = queryset.filter(session__user_id=user_id)
+        if project_id:
+            # Filter by project path or metadata
+            queryset = queryset.filter(session__project_path__icontains=project_id)
+        if start_date:
+            from dateutil.parser import parse
+
+            start_date_parsed = parse(start_date)
+            queryset = queryset.filter(calculated_at__gte=start_date_parsed)
+        if end_date:
+            from dateutil.parser import parse
+
+            end_date_parsed = parse(end_date)
+            queryset = queryset.filter(calculated_at__lte=end_date_parsed)
+
+        metrics = queryset.order_by("-calculated_at")[:100]  # Limit to 100 recent metrics
+        serializer = CodeMetricsSerializer(metrics, many=True)
+
+        return Response({"results": serializer.data, "count": len(serializer.data)}, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        logger.error(f"Error getting code metrics for analytics: {e}")
+        return Response({"error": "Failed to get code metrics"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
