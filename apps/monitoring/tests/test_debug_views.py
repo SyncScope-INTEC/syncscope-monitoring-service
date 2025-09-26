@@ -47,14 +47,16 @@ class TestAuthServiceViewTest(TestCase):
         self.assertEqual(data["status"], "failed")
 
     @override_settings(AUTH_SERVICE_URL="http://test-auth-service.com")
+    @patch("apps.monitoring.debug_views.requests.get")
     @patch("apps.monitoring.debug_views.requests.post")
-    def test_test_auth_service_successful_login(self, mock_post):
+    def test_test_auth_service_successful_login(self, mock_post, mock_get):
         """Test successful authentication through debug endpoint."""
         # Mock successful login response
         login_response = Mock()
         login_response.status_code = 200
         login_response.json.return_value = {"access_token": "test-token"}
         login_response.text = '{"access_token": "test-token"}'
+        mock_post.return_value = login_response
 
         # Mock successful profile response
         profile_response = Mock()
@@ -66,9 +68,7 @@ class TestAuthServiceViewTest(TestCase):
             "is_active": True,
         }
         profile_response.text = '{"email": "test@example.com", "is_staff": true}'
-
-        # Configure requests.post to return different responses based on call
-        mock_post.side_effect = [login_response, profile_response]
+        mock_get.return_value = profile_response
 
         response = self.client.post(
             self.url,
@@ -82,7 +82,6 @@ class TestAuthServiceViewTest(TestCase):
         self.assertEqual(data["auth_service_url"], "http://test-auth-service.com")
         self.assertEqual(data["login_url"], "http://test-auth-service.com/auth/login")
         self.assertEqual(data["login_response_status"], 200)
-        self.assertIn("profile_response_status", data)
         self.assertEqual(data["profile_response_status"], 200)
         self.assertEqual(data["status"], "success")
         self.assertIn("user_info", data)
@@ -90,7 +89,8 @@ class TestAuthServiceViewTest(TestCase):
         self.assertTrue(data["user_info"]["is_staff"])
 
         # Verify the correct API calls were made
-        self.assertEqual(mock_post.call_count, 2)
+        mock_post.assert_called_once()
+        mock_get.assert_called_once()
 
     @override_settings(AUTH_SERVICE_URL="http://test-auth-service.com")
     @patch("apps.monitoring.debug_views.requests.post")

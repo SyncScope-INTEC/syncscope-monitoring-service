@@ -327,14 +327,15 @@ class AggregateUserMetricsEnhancedTest(TestCase):
         mock_redis_instance = MagicMock()
         mock_redis.return_value = mock_redis_instance
 
-        # Delete the existing session and create new one with null duration
-        self.session.delete()
+        # Clear ALL sessions for this user to ensure clean state
+        DeveloperSession.objects.filter(user_id=self.user_id).delete()
 
         today = timezone.now().date()
         start_of_day = timezone.make_aware(timezone.datetime.combine(today, timezone.datetime.min.time()))
 
         from datetime import timedelta
 
+        # Create new session with null duration
         null_session = DeveloperSession.objects.create(
             user_id=self.user_id,
             ide_name="VSCode",
