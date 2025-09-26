@@ -26,6 +26,12 @@ urlpatterns = [
     path("api/redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),
 ]
 
+# Debug endpoints (available in all environments for testing)
+urlpatterns += [
+    path("debug/test-auth-service/", test_auth_service, name="debug_test_auth_service"),
+    path("debug/test-settings/", test_settings, name="debug_test_settings"),
+]
+
 # Serve static files in development
 if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

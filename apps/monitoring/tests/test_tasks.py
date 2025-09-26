@@ -327,17 +327,28 @@ class AggregateUserMetricsEnhancedTest(TestCase):
         mock_redis_instance = MagicMock()
         mock_redis.return_value = mock_redis_instance
 
-        # Create session with null duration
-        self.session.session_duration_minutes = None
-        self.session.save()
+        # Delete the existing session and create new one with null duration
+        self.session.delete()
 
         today = timezone.now().date()
+        start_of_day = timezone.make_aware(timezone.datetime.combine(today, timezone.datetime.min.time()))
+
+        from datetime import timedelta
+
+        null_session = DeveloperSession.objects.create(
+            user_id=self.user_id,
+            ide_name="VSCode",
+            session_start=start_of_day + timedelta(hours=1),
+            session_end=start_of_day + timedelta(hours=2),
+            session_duration_minutes=None,  # Explicitly null
+        )
+
         result = aggregate_user_metrics(self.user_id, today)
 
         call_args = mock_redis_instance.set_metrics_cache.call_args[0]
         cached_data = call_args[1]
 
-        # Should handle null values gracefully
+        # Should handle null values gracefully - Sum() returns None for null values which becomes 0
         self.assertEqual(cached_data["total_duration_minutes"], 0)
         self.assertEqual(cached_data["avg_complexity_score"], 0)  # No metrics with complexity
 

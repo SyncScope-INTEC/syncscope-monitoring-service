@@ -8,6 +8,7 @@ from unittest.mock import MagicMock, patch
 
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient, APITestCase
 
@@ -342,9 +343,9 @@ class ApiHomeViewTest(TestCase):
 class HealthCheckViewsTest(TestCase):
     """Enhanced tests for health check views."""
 
-    @patch("apps.monitoring.views.DatabaseHealthCheck.is_healthy")
-    @patch("apps.monitoring.views.CacheHealthCheck.is_healthy")
-    @patch("apps.monitoring.views.DatabaseHealthCheck.get_schema_info")
+    @patch("config.database_retry.DatabaseHealthCheck.is_healthy")
+    @patch("apps.monitoring.mixins.CacheHealthCheck.is_healthy")
+    @patch("config.database_retry.DatabaseHealthCheck.get_schema_info")
     def test_health_check_all_healthy(self, mock_schema, mock_cache, mock_db):
         """Test health check when all services are healthy."""
         mock_db.return_value = True
@@ -362,8 +363,8 @@ class HealthCheckViewsTest(TestCase):
         self.assertEqual(data["checks"]["schemas"], ["public", "monitoring"])
         self.assertIn("response_time_ms", data)
 
-    @patch("apps.monitoring.views.DatabaseHealthCheck.is_healthy")
-    @patch("apps.monitoring.views.CacheHealthCheck.is_healthy")
+    @patch("config.database_retry.DatabaseHealthCheck.is_healthy")
+    @patch("apps.monitoring.mixins.CacheHealthCheck.is_healthy")
     def test_health_check_database_unhealthy(self, mock_cache, mock_db):
         """Test health check when database is unhealthy."""
         mock_db.return_value = False
@@ -378,8 +379,8 @@ class HealthCheckViewsTest(TestCase):
         self.assertEqual(data["checks"]["database"], "unhealthy")
         self.assertEqual(data["checks"]["redis"], "healthy")
 
-    @patch("apps.monitoring.views.DatabaseHealthCheck.is_healthy")
-    @patch("apps.monitoring.views.CacheHealthCheck.is_healthy")
+    @patch("config.database_retry.DatabaseHealthCheck.is_healthy")
+    @patch("apps.monitoring.mixins.CacheHealthCheck.is_healthy")
     def test_health_check_database_error(self, mock_cache, mock_db):
         """Test health check when database check throws error."""
         mock_db.side_effect = Exception("Connection failed")
@@ -393,9 +394,9 @@ class HealthCheckViewsTest(TestCase):
         self.assertEqual(data["status"], "unhealthy")
         self.assertIn("error: Connection failed", data["checks"]["database"])
 
-    @patch("apps.monitoring.views.DatabaseHealthCheck.is_healthy")
-    @patch("apps.monitoring.views.CacheHealthCheck.is_healthy")
-    @patch("apps.monitoring.views.DatabaseHealthCheck.get_schema_info")
+    @patch("config.database_retry.DatabaseHealthCheck.is_healthy")
+    @patch("apps.monitoring.mixins.CacheHealthCheck.is_healthy")
+    @patch("config.database_retry.DatabaseHealthCheck.get_schema_info")
     def test_health_check_schema_error(self, mock_schema, mock_cache, mock_db):
         """Test health check when schema info fails."""
         mock_db.return_value = True
@@ -409,7 +410,7 @@ class HealthCheckViewsTest(TestCase):
 
     def test_liveness_check(self):
         """Test liveness probe endpoint."""
-        response = self.client.get("/liveness/")
+        response = self.client.get("/monitoring/health/live/")
 
         self.assertEqual(response.status_code, 200)
         data = response.json()
@@ -418,14 +419,14 @@ class HealthCheckViewsTest(TestCase):
         self.assertEqual(data["service"], "syncscope-monitoring-service")
         self.assertIn("timestamp", data)
 
-    @patch("apps.monitoring.views.DatabaseHealthCheck.is_healthy")
-    @patch("apps.monitoring.views.CacheHealthCheck.is_healthy")
+    @patch("config.database_retry.DatabaseHealthCheck.is_healthy")
+    @patch("apps.monitoring.mixins.CacheHealthCheck.is_healthy")
     def test_readiness_check_ready(self, mock_cache, mock_db):
         """Test readiness probe when service is ready."""
         mock_db.return_value = True
         mock_cache.return_value = True
 
-        response = self.client.get("/readiness/")
+        response = self.client.get("/monitoring/health/ready/")
 
         self.assertEqual(response.status_code, 200)
         data = response.json()
@@ -434,14 +435,14 @@ class HealthCheckViewsTest(TestCase):
         self.assertEqual(data["dependencies"]["database"], "ready")
         self.assertEqual(data["dependencies"]["redis"], "ready")
 
-    @patch("apps.monitoring.views.DatabaseHealthCheck.is_healthy")
-    @patch("apps.monitoring.views.CacheHealthCheck.is_healthy")
+    @patch("config.database_retry.DatabaseHealthCheck.is_healthy")
+    @patch("apps.monitoring.mixins.CacheHealthCheck.is_healthy")
     def test_readiness_check_not_ready(self, mock_cache, mock_db):
         """Test readiness probe when service is not ready."""
         mock_db.return_value = False
         mock_cache.return_value = True
 
-        response = self.client.get("/readiness/")
+        response = self.client.get("/monitoring/health/ready/")
 
         self.assertEqual(response.status_code, 503)
         data = response.json()
@@ -578,5 +579,6 @@ class BulkActivitiesEnhancedTest(APITestCase):
             "/monitoring/activities/bulk/", data=json.dumps(activities_data), content_type="application/json"
         )
 
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(response.data["activities_count"], 0)
+        # Empty activities list should be rejected by validation
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("Activities list cannot be empty", str(response.data))

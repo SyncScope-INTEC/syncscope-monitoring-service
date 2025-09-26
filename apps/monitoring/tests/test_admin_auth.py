@@ -89,59 +89,72 @@ class AuthServiceAdminSiteTest(TestCase):
         self.assertEqual(response.url, "/admin/custom-page/")
 
     @patch("apps.monitoring.admin_auth.authenticate")
-    def test_login_inactive_user(self, mock_authenticate):
+    @patch("django.contrib.admin.AdminSite.login")
+    def test_login_inactive_user(self, mock_parent_login, mock_authenticate):
         """Test login with inactive user."""
         self.test_user.is_active = False
         self.test_user.save()
         mock_authenticate.return_value = self.test_user
+        mock_parent_login.return_value = Mock()
 
         request = self.factory.post("/admin/login/", {"username": "test@example.com", "password": "testpass"})
         request.GET = {}
 
-        with patch.object(self.admin_site, "login", wraps=self.admin_site.login) as mock_super_login:
-            mock_super_login.return_value = Mock()  # Mock the parent login response
-            response = self.admin_site.login(request, extra_context={})
+        response = self.admin_site.login(request)
 
-        # Should call parent login with error message
-        mock_super_login.assert_called()
-        args, kwargs = mock_super_login.call_args
-        self.assertIn("error_message", kwargs["extra_context"])
-        self.assertIn("does not have admin privileges", kwargs["extra_context"]["error_message"])
+        # Verify parent login was called with error context
+        mock_parent_login.assert_called_once()
+        args, kwargs = mock_parent_login.call_args
+
+        extra_context = kwargs.get("extra_context") or args[1] if len(args) > 1 else None
+        self.assertIsNotNone(extra_context)
+        self.assertIn("error_message", extra_context)
+        self.assertIn("does not have admin privileges", extra_context["error_message"])
 
     @patch("apps.monitoring.admin_auth.authenticate")
-    def test_login_non_staff_user(self, mock_authenticate):
+    @patch("django.contrib.admin.AdminSite.login")
+    def test_login_non_staff_user(self, mock_parent_login, mock_authenticate):
         """Test login with non-staff user."""
         self.test_user.is_staff = False
         self.test_user.is_superuser = False
         self.test_user.save()
         mock_authenticate.return_value = self.test_user
+        mock_parent_login.return_value = Mock()
 
         request = self.factory.post("/admin/login/", {"username": "test@example.com", "password": "testpass"})
         request.GET = {}
 
-        with patch.object(self.admin_site, "login", wraps=self.admin_site.login) as mock_super_login:
-            mock_super_login.return_value = Mock()
-            response = self.admin_site.login(request, extra_context={})
+        response = self.admin_site.login(request)
 
-        args, kwargs = mock_super_login.call_args
-        self.assertIn("error_message", kwargs["extra_context"])
-        self.assertIn("does not have admin privileges", kwargs["extra_context"]["error_message"])
+        mock_parent_login.assert_called_once()
+        args, kwargs = mock_parent_login.call_args
+
+        extra_context = kwargs.get("extra_context") or args[1] if len(args) > 1 else None
+        self.assertIsNotNone(extra_context)
+        self.assertIn("error_message", extra_context)
+        self.assertIn("does not have admin privileges", extra_context["error_message"])
 
     @patch("apps.monitoring.admin_auth.authenticate")
-    def test_login_authentication_failed(self, mock_authenticate):
+    @patch("django.contrib.admin.AdminSite.login")
+    def test_login_authentication_failed(self, mock_parent_login, mock_authenticate):
         """Test login with failed authentication."""
         mock_authenticate.return_value = None
+        mock_parent_login.return_value = Mock()
 
         request = self.factory.post("/admin/login/", {"username": "test@example.com", "password": "wrongpass"})
         request.GET = {}
 
-        with patch.object(self.admin_site, "login", wraps=self.admin_site.login) as mock_super_login:
-            mock_super_login.return_value = Mock()
-            response = self.admin_site.login(request, extra_context={})
+        response = self.admin_site.login(request)
 
-        args, kwargs = mock_super_login.call_args
-        self.assertIn("error_message", kwargs["extra_context"])
-        self.assertIn("Invalid credentials", kwargs["extra_context"]["error_message"])
+        # Verify that parent login was called with error message
+        mock_parent_login.assert_called_once()
+        args, kwargs = mock_parent_login.call_args
+
+        # The extra_context should contain the error message
+        extra_context = kwargs.get("extra_context") or args[1] if len(args) > 1 else None
+        self.assertIsNotNone(extra_context)
+        self.assertIn("error_message", extra_context)
+        self.assertIn("Invalid credentials", extra_context["error_message"])
 
     def test_login_missing_username(self):
         """Test login with missing username."""
@@ -179,23 +192,27 @@ class AuthServiceAdminSiteTest(TestCase):
         mock_super_login.assert_called()
 
     @patch("apps.monitoring.admin_auth.authenticate")
-    def test_login_preserves_existing_extra_context(self, mock_authenticate):
+    @patch("django.contrib.admin.AdminSite.login")
+    def test_login_preserves_existing_extra_context(self, mock_parent_login, mock_authenticate):
         """Test that login preserves existing extra_context."""
         mock_authenticate.return_value = None
+        mock_parent_login.return_value = Mock()
 
         request = self.factory.post("/admin/login/", {"username": "test@example.com", "password": "wrongpass"})
         request.GET = {}
 
         existing_context = {"existing_key": "existing_value"}
 
-        with patch.object(self.admin_site, "login", wraps=self.admin_site.login) as mock_super_login:
-            mock_super_login.return_value = Mock()
-            response = self.admin_site.login(request, extra_context=existing_context)
+        response = self.admin_site.login(request, extra_context=existing_context)
 
-        args, kwargs = mock_super_login.call_args
-        self.assertIn("existing_key", kwargs["extra_context"])
-        self.assertEqual(kwargs["extra_context"]["existing_key"], "existing_value")
-        self.assertIn("error_message", kwargs["extra_context"])
+        mock_parent_login.assert_called_once()
+        args, kwargs = mock_parent_login.call_args
+
+        extra_context = kwargs.get("extra_context") or args[1] if len(args) > 1 else None
+        self.assertIsNotNone(extra_context)
+        self.assertIn("existing_key", extra_context)
+        self.assertEqual(extra_context["existing_key"], "existing_value")
+        self.assertIn("error_message", extra_context)
 
 
 class AuthServiceUserAdminTest(TestCase):
