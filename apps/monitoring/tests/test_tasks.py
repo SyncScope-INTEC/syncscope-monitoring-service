@@ -331,20 +331,57 @@ class AggregateUserMetricsEnhancedTest(TestCase):
         test_user_id = 777777
         today = timezone.now().date()
         start_of_day = timezone.make_aware(timezone.datetime.combine(today, timezone.datetime.min.time()))
+        end_of_day = start_of_day + timedelta(days=1)
+
+        # COMPLETELY clear any existing sessions for this test user on this date
+        DeveloperSession.objects.filter(
+            user_id=test_user_id, session_start__gte=start_of_day, session_start__lt=end_of_day
+        ).delete()
+
+        # Verify no sessions exist before test
+        existing_count = DeveloperSession.objects.filter(
+            user_id=test_user_id, session_start__gte=start_of_day, session_start__lt=end_of_day
+        ).count()
+        self.assertEqual(existing_count, 0, f"Expected 0 existing sessions but found {existing_count}")
 
         # Create a fresh session with null duration for this test
+        # Note: The model auto-calculates duration when session_end is provided,
+        # so we need to set it to None after creation
         null_session = DeveloperSession.objects.create(
             user_id=test_user_id,
             ide_name="TestIDE",
             session_start=start_of_day + timedelta(hours=1),
             session_end=start_of_day + timedelta(hours=2),
-            session_duration_minutes=None,  # Explicitly null
         )
+
+        # Override the auto-calculated duration to None for this test
+        DeveloperSession.objects.filter(pk=null_session.pk).update(session_duration_minutes=None)
+
+        # Verify the session was updated with null duration
+        null_session.refresh_from_db()
+        self.assertIsNone(null_session.session_duration_minutes, "Session duration should be None")
+
+        # Verify only one session exists for this user/date
+        final_count = DeveloperSession.objects.filter(
+            user_id=test_user_id, session_start__gte=start_of_day, session_start__lt=end_of_day
+        ).count()
+        self.assertEqual(final_count, 1, f"Expected 1 session but found {final_count}")
 
         result = aggregate_user_metrics(test_user_id, today)
 
         call_args = mock_redis_instance.set_metrics_cache.call_args[0]
         cached_data = call_args[1]
+
+        # Debug information if test fails
+        if cached_data["total_duration_minutes"] != 0:
+            sessions_debug = DeveloperSession.objects.filter(
+                user_id=test_user_id, session_start__gte=start_of_day, session_start__lt=end_of_day
+            )
+            session_details = [(s.session_id, s.session_duration_minutes) for s in sessions_debug]
+            self.fail(
+                f"Expected 0 total_duration_minutes but got {cached_data['total_duration_minutes']}. "
+                f"Sessions found: {session_details}"
+            )
 
         # Should handle null values gracefully - Sum() returns None for null values which becomes 0
         # Django's `or 0` in the tasks.py ensures it's always 0
