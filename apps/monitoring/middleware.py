@@ -74,9 +74,9 @@ class CORSPreflightMiddleware(MiddlewareMixin):
             response = HttpResponse()
             response["Access-Control-Allow-Origin"] = request.META.get("HTTP_ORIGIN", "*")
             response["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
-            response[
-                "Access-Control-Allow-Headers"
-            ] = "authorization, content-type, x-csrftoken, x-requested-with, x-service-token"
+            response["Access-Control-Allow-Headers"] = (
+                "authorization, content-type, x-csrftoken, x-requested-with, x-service-token"
+            )
             response["Access-Control-Allow-Credentials"] = "true"
             response["Access-Control-Max-Age"] = "86400"  # 24 hours
             return response
