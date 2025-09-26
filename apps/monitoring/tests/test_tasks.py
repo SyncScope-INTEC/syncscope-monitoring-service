@@ -252,7 +252,7 @@ class AggregateUserMetricsEnhancedTest(TestCase):
     """Enhanced tests for aggregate_user_metrics task."""
 
     def setUp(self):
-        self.user_id = 1
+        self.user_id = 999  # Use different user_id to avoid conflicts with other test classes
         today = timezone.now().date()
         start_of_day = timezone.make_aware(timezone.datetime.combine(today, timezone.datetime.min.time()))
 
