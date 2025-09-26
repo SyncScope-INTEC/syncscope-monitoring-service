@@ -327,20 +327,30 @@ class AggregateUserMetricsEnhancedTest(TestCase):
         mock_redis_instance = MagicMock()
         mock_redis.return_value = mock_redis_instance
 
-        # Modify the existing session to have null duration
-        self.session.session_duration_minutes = None
-        self.session.save()
-
+        # Use a completely different user_id to ensure isolation
+        test_user_id = 777777
         today = timezone.now().date()
-        result = aggregate_user_metrics(self.user_id, today)
+        start_of_day = timezone.make_aware(timezone.datetime.combine(today, timezone.datetime.min.time()))
+
+        # Create a fresh session with null duration for this test
+        null_session = DeveloperSession.objects.create(
+            user_id=test_user_id,
+            ide_name="TestIDE",
+            session_start=start_of_day + timedelta(hours=1),
+            session_end=start_of_day + timedelta(hours=2),
+            session_duration_minutes=None,  # Explicitly null
+        )
+
+        result = aggregate_user_metrics(test_user_id, today)
 
         call_args = mock_redis_instance.set_metrics_cache.call_args[0]
         cached_data = call_args[1]
 
         # Should handle null values gracefully - Sum() returns None for null values which becomes 0
-        # Note: In SQLite, Sum() may return 0 instead of None for null values, but Django's `or 0` ensures it's always 0
+        # Django's `or 0` in the tasks.py ensures it's always 0
         self.assertEqual(cached_data["total_duration_minutes"], 0)
         self.assertEqual(cached_data["avg_complexity_score"], 0)  # No metrics with complexity
+        self.assertEqual(cached_data["sessions_count"], 1)  # Should have exactly one session
 
     @patch("apps.monitoring.tasks.RedisClient")
     def test_aggregate_user_metrics_cache_timeout(self, mock_redis):
