@@ -102,6 +102,18 @@ class SimpleUser:
         """Override to prevent password changes"""
         pass
 
+    def has_perm(self, perm, obj=None):
+        """Check if user has permission."""
+        return self.is_staff or self.is_superuser
+
+    def has_perms(self, perm_list, obj=None):
+        """Check if user has multiple permissions."""
+        return all(self.has_perm(perm, obj) for perm in perm_list)
+
+    def has_module_perms(self, package_name):
+        """Check if user has permissions for a module."""
+        return self.is_staff or self.is_superuser
+
     @staticmethod
     def get_user_by_id(user_id):
         """Get user by ID from auth.users table"""
