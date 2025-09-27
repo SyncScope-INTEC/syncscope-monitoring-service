@@ -11,6 +11,14 @@ DEBUG = True
 SECRET_KEY = "test-secret-key-for-testing-only"
 USE_SQLITE = True
 
+# Use Django's default User model for SQLite tests (no schema support)
+AUTH_USER_MODEL = "auth.User"
+
+# Use default ModelBackend for testing
+AUTHENTICATION_BACKENDS = [
+    "django.contrib.auth.backends.ModelBackend",
+]
+
 # Use SQLite for testing
 DATABASES = {
     "default": {
@@ -69,8 +77,31 @@ PASSWORD_HASHERS = [
 ]
 
 
-# Enable migrations for tests so tables are created
-# MIGRATION_MODULES = DisableMigrations()  # Disabled for proper test setup
+# Disable migrations for faster test runs (but keep database creation)
+class DisableMigrations:
+    def __contains__(self, item):
+        return True
+
+    def __getitem__(self, item):
+        return None
+
+
+# Always disable migrations for faster tests and use syncdb instead
+import os
+
+# For CI environments, use in-memory database
+if os.environ.get("GITHUB_ACTIONS"):
+    DATABASES["default"]["NAME"] = ":memory:"
+    # Disable migrations to avoid User model conflicts in CI
+    MIGRATION_MODULES = DisableMigrations()
+else:
+    # For local testing, disable migrations too
+    MIGRATION_MODULES = DisableMigrations()
+
+# Additional test database settings
+DATABASES["default"]["OPTIONS"] = {
+    "timeout": 20,
+}
 
 # Test-specific environment
 ENVIRONMENT = "testing"

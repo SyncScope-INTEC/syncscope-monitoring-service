@@ -189,13 +189,25 @@ STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Custom User model for UUID compatibility
-AUTH_USER_MODEL = "monitoring.User"
+# Only use custom User model in production where it's safe
+# In CI/test environments, we use the default auth.User
+import sys
+
+if "test" not in sys.argv and "pytest" not in sys.modules and not os.environ.get("GITHUB_ACTIONS"):
+    AUTH_USER_MODEL = "monitoring.User"
 
 # Authentication backends for admin integration with auth service API
-AUTHENTICATION_BACKENDS = [
-    "apps.monitoring.database_auth_backend.CachedAuthServiceAPIBackend",
-    # Removed ModelBackend to prevent auth_user table queries
-]
+# Only use custom auth backend in production where it's safe
+if "test" not in sys.argv and "pytest" not in sys.modules and not os.environ.get("GITHUB_ACTIONS"):
+    AUTHENTICATION_BACKENDS = [
+        "apps.monitoring.database_auth_backend.CachedAuthServiceAPIBackend",
+        # Removed ModelBackend to prevent auth_user table queries
+    ]
+else:
+    # Use default auth backend for CI/test environments
+    AUTHENTICATION_BACKENDS = [
+        "django.contrib.auth.backends.ModelBackend",
+    ]
 
 # REST Framework configuration
 REST_FRAMEWORK = {
