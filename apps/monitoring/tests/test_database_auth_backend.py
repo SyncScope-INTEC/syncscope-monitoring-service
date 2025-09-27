@@ -258,8 +258,8 @@ class AuthServiceAPIBackendTest(TestCase):
         }
         mock_post.return_value = mock_response
 
-        # Mock User.objects.get_or_create to raise an exception
-        with patch.object(User.objects, "get_or_create", side_effect=Exception("DB Error")):
+        # Mock User.objects.get to raise an exception (testing database error handling)
+        with patch.object(User.objects, "get", side_effect=Exception("DB Error")):
             result = self.backend.authenticate(None, username="test@example.com", password="password")
 
         self.assertIsNone(result)

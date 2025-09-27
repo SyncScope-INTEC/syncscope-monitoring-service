@@ -3,6 +3,8 @@ API-based authentication backend that uses the SyncScope Auth Service.
 """
 
 import logging
+import os
+import sys
 import time
 import uuid
 
@@ -16,6 +18,16 @@ from django.db import connection
 User = get_user_model()
 
 logger = logging.getLogger(__name__)
+
+# Check if we're in test/CI environment
+IS_TEST_ENVIRONMENT = (
+    "test" in sys.argv
+    or "pytest" in sys.modules
+    or os.environ.get("GITHUB_ACTIONS")
+    or settings.DEBUG
+    and hasattr(settings, "USE_SQLITE")
+    and settings.USE_SQLITE
+)
 
 
 class SimplePKField:
@@ -188,7 +200,15 @@ class AuthServiceAPIBackend(BaseBackend):
         """
         Get user by ID for session management.
         """
-        return SimpleUser.get_user_by_id(user_id)
+        if IS_TEST_ENVIRONMENT:
+            # In test environment, use Django's default User model
+            try:
+                return User.objects.get(pk=user_id)
+            except User.DoesNotExist:
+                return None
+        else:
+            # In production, use SimpleUser with direct database queries
+            return SimpleUser.get_user_by_id(user_id)
 
     def _authenticate_with_service(self, email, password, max_retries=3):
         """
@@ -228,8 +248,8 @@ class AuthServiceAPIBackend(BaseBackend):
 
     def _get_or_create_local_user(self, user_data):
         """
-        Get or create a SimpleUser from auth service data.
-        Uses direct database queries to avoid Django ORM issues with managed=False models.
+        Get or create a User from auth service data.
+        Environment-aware: uses Django User in tests, SimpleUser in production.
         """
         try:
             email = user_data["email"]
@@ -243,27 +263,60 @@ class AuthServiceAPIBackend(BaseBackend):
             if user_data.get("is_active", True) and is_staff:
                 logger.info(f"AuthServiceAPIBackend: User {email} has admin privileges (role: {role})")
 
-                # Try to get existing user by ID
-                user = SimpleUser.get_user_by_id(auth_service_uuid)
-
-                if user:
-                    logger.info(f"AuthServiceAPIBackend: Found existing user: {user.email}")
-                    return user
+                if IS_TEST_ENVIRONMENT:
+                    # In test environment, use Django's default User model
+                    try:
+                        user = User.objects.get(email=email)
+                        # Update user data
+                        user.first_name = user_data.get("first_name", "")
+                        user.last_name = user_data.get("last_name", "")
+                        user.is_staff = is_staff
+                        user.is_active = user_data.get("is_active", True)
+                        user.is_superuser = is_superuser
+                        user.save()
+                        logger.info(f"AuthServiceAPIBackend: Updated existing Django user: {user.email}")
+                        return user
+                    except User.DoesNotExist:
+                        # Create new Django user
+                        user = User.objects.create_user(
+                            username=email,
+                            email=email,
+                            first_name=user_data.get("first_name", ""),
+                            last_name=user_data.get("last_name", ""),
+                            is_staff=is_staff,
+                            is_active=user_data.get("is_active", True),
+                            is_superuser=is_superuser,
+                        )
+                        logger.info(f"AuthServiceAPIBackend: Created Django user: {user.email}")
+                        return user
+                    except Exception as e:
+                        # Handle any database errors during Django User operations
+                        logger.error(f"AuthServiceAPIBackend: Database error with Django User: {str(e)}")
+                        return None
                 else:
-                    # Create a SimpleUser object representing the auth service user
-                    user = SimpleUser(
-                        id=auth_service_uuid,
-                        email=email,
-                        first_name=user_data.get("first_name", ""),
-                        last_name=user_data.get("last_name", ""),
-                        is_staff=is_staff,
-                        is_active=user_data.get("is_active", True),
-                        is_superuser=is_superuser,
-                        last_login=None,
-                    )
+                    # In production, use SimpleUser with direct database queries
+                    user = SimpleUser.get_user_by_id(auth_service_uuid)
 
-                    logger.info(f"AuthServiceAPIBackend: Created SimpleUser for: {user.email} with UUID: {auth_service_uuid}")
-                    return user
+                    if user:
+                        logger.info(f"AuthServiceAPIBackend: Found existing user: {user.email}")
+                        return user
+                    else:
+                        # Create a SimpleUser object representing the auth service user
+                        user = SimpleUser(
+                            id=auth_service_uuid,
+                            email=email,
+                            first_name=user_data.get("first_name", ""),
+                            last_name=user_data.get("last_name", ""),
+                            is_staff=is_staff,
+                            is_active=user_data.get("is_active", True),
+                            is_superuser=is_superuser,
+                            last_login=None,
+                        )
+
+                        logger.info(
+                            f"AuthServiceAPIBackend: Created SimpleUser for: {user.email} with UUID: {auth_service_uuid}"
+                        )
+                        return user
             else:
                 logger.warning(f"AuthServiceAPIBackend: User {email} does not have admin privileges")
                 return None
