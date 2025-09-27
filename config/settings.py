@@ -188,10 +188,13 @@ STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 # Default primary key field type
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+# Custom User model for UUID compatibility
+AUTH_USER_MODEL = "monitoring.User"
+
 # Authentication backends for admin integration with auth service API
 AUTHENTICATION_BACKENDS = [
     "apps.monitoring.database_auth_backend.CachedAuthServiceAPIBackend",
-    "django.contrib.auth.backends.ModelBackend",  # Fallback for local users
+    # Removed ModelBackend to prevent auth_user table queries
 ]
 
 # REST Framework configuration

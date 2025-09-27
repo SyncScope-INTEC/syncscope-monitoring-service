@@ -1,6 +1,7 @@
 import sys
 import uuid
 
+from django.contrib.auth.models import AbstractBaseUser
 from django.db import models
 from django.utils import timezone
 
@@ -17,6 +18,37 @@ def get_table_name(base_name):
     else:
         # PostgreSQL with monitoring schema
         return f"monitoring.{base_name}"
+
+
+class User(AbstractBaseUser):
+    """
+    Custom User model that references the auth.users table from auth service.
+    Uses UUID primary key to match the auth service schema.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    password = models.CharField(max_length=128, db_column="password_hash")
+    email = models.EmailField(unique=True)
+    first_name = models.CharField(max_length=150, blank=True)
+    last_name = models.CharField(max_length=150, blank=True)
+    is_staff = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
+    is_superuser = models.BooleanField(default=False)
+    last_login = models.DateTimeField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    USERNAME_FIELD = "email"
+    REQUIRED_FIELDS = []
+
+    class Meta:
+        db_table = "users"  # Reference auth.users table via search path
+        managed = False  # Don't let Django manage this table
+
+    def has_perm(self, perm, obj=None):
+        return self.is_superuser
+
+    def has_module_perms(self, app_label):
+        return self.is_superuser
 
 
 class DeveloperSession(RetryableModelMixin, models.Model):
