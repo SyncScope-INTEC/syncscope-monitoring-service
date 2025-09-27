@@ -114,6 +114,10 @@ class SimpleUser:
         """Check if user has permissions for a module."""
         return self.is_staff or self.is_superuser
 
+    def get_username(self):
+        """Return the username for this user."""
+        return self.username
+
     @staticmethod
     def get_user_by_id(user_id):
         """Get user by ID from auth.users table"""
