@@ -435,7 +435,7 @@ jobs:
 
       - name: Upload schema artifact
         if: success()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: openapi-schema-monitoring
           path: schema.yml
