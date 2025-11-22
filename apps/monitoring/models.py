@@ -140,6 +140,7 @@ class ActivityLog(RetryableModelMixin, models.Model):
         ("git_pull", "Git Pull"),
         ("ide_focus", "IDE Focus"),
         ("ide_blur", "IDE Blur"),
+        ("window_focus", "Window Focus"),
         ("other", "Other"),
     ]
 

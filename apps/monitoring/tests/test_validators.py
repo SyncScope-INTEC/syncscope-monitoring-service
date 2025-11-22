@@ -285,6 +285,15 @@ class ActivityTypeValidatorTest(TestCase):
         with self.assertRaises(ValidationError):
             validator("invalid_activity_type")
 
+    def test_window_focus_activity_type(self):
+        """Test window_focus activity type is valid."""
+        validator = ActivityTypeValidator()
+
+        try:
+            validator("window_focus")
+        except ValidationError:
+            self.fail("window_focus should be a valid activity type")
+
 
 class GitEventTypeValidatorTest(TestCase):
     """Tests for GitEventTypeValidator."""
