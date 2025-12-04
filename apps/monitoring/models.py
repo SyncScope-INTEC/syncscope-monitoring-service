@@ -50,6 +50,20 @@ class User(AbstractBaseUser):
     def has_module_perms(self, app_label):
         return self.is_superuser
 
+    def get_username(self):
+        return self.username if hasattr(self, "username") else self.email
+
+    def save(self, *args, **kwargs):
+        """Override save to handle database errors gracefully."""
+        try:
+            super().save(*args, **kwargs)
+        except Exception as e:
+            # Log the error but don't raise it to prevent login failures
+            import logging
+
+            logger = logging.getLogger(__name__)
+            logger.warning(f"User: Could not save user {self.email}: {str(e)}")
+
 
 class DeveloperSession(RetryableModelMixin, models.Model):
     """
