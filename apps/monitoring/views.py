@@ -1,5 +1,6 @@
 import logging
 
+from django.db import models
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.template import loader
@@ -772,3 +773,84 @@ def get_all_code_metrics(request):
     except Exception as e:
         logger.error(f"Error getting code metrics for analytics: {e}")
         return Response({"error": "Failed to get code metrics"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@extend_schema(
+    tags=["API - Git Events"],
+    summary="Get git events by repository",
+    description="Get git events filtered by repository URL for cross-service synchronization",
+    parameters=[
+        OpenApiParameter(
+            name="repository_url",
+            description="Repository URL to filter events (e.g., https://github.com/owner/repo)",
+            type=OpenApiTypes.STR,
+            required=True,
+        ),
+        OpenApiParameter(name="event_type", description="Filter by event type (commit, push, etc.)", type=OpenApiTypes.STR),
+        OpenApiParameter(name="branch", description="Filter by branch name", type=OpenApiTypes.STR),
+        OpenApiParameter(name="since", description="Get events since this timestamp (ISO format)", type=OpenApiTypes.DATETIME),
+        OpenApiParameter(name="limit", description="Maximum number of events to return (default 100)", type=OpenApiTypes.INT),
+    ],
+    responses={
+        200: {
+            "description": "List of git events",
+            "content": {"application/json": {"schema": {"description": "List of git events"}}},
+        }
+    },
+)
+@api_view(["GET"])
+@permission_classes([AllowAny])  # For service-to-service communication
+def get_git_events_by_repository(request):
+    """Get git events filtered by repository URL for management service synchronization."""
+    try:
+        repository_url = request.GET.get("repository_url")
+        if not repository_url:
+            return Response({"error": "repository_url parameter is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        event_type = request.GET.get("event_type")
+        branch = request.GET.get("branch")
+        since = request.GET.get("since")
+        limit = int(request.GET.get("limit", 100))
+
+        # Normalize repository URL (remove .git suffix if present)
+        normalized_url = repository_url.rstrip("/")
+        if normalized_url.endswith(".git"):
+            normalized_url = normalized_url[:-4]
+
+        # Build query - filter by remote_name which contains the repository URL
+        queryset = GitEvent.objects.filter(
+            models.Q(remote_name__icontains=normalized_url) | models.Q(git_metadata__repository_url__icontains=normalized_url)
+        )
+
+        # Only get commit events for CodeCommit synchronization
+        if event_type:
+            queryset = queryset.filter(event_type=event_type)
+        else:
+            # Default to commit events for sync
+            queryset = queryset.filter(event_type="commit")
+
+        if branch:
+            queryset = queryset.filter(branch_name=branch)
+
+        if since:
+            from dateutil.parser import parse
+
+            since_parsed = parse(since)
+            queryset = queryset.filter(timestamp__gte=since_parsed)
+
+        # Order by timestamp descending and limit results
+        git_events = queryset.order_by("-timestamp")[:limit]
+        serializer = GitEventSerializer(git_events, many=True)
+
+        return Response(
+            {
+                "git_events": serializer.data,
+                "count": len(serializer.data),
+                "repository_url": repository_url,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    except Exception as e:
+        logger.error(f"Error getting git events by repository: {e}")
+        return Response({"error": "Failed to get git events"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

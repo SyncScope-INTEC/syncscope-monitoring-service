@@ -24,4 +24,6 @@ urlpatterns = [
     path("code-metrics/", views.get_all_code_metrics, name="get_all_code_metrics"),
     # Events endpoints
     path("events/git/", views.record_git_event, name="record_git_event"),
+    # API endpoint for cross-service sync
+    path("api/git-events/", views.get_git_events_by_repository, name="get_git_events_by_repository"),
 ]
