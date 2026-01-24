@@ -78,7 +78,9 @@ class Command(BaseCommand):
         # Process in batches
         for i in range(0, total_count if not limit else limit, batch_size):
             batch = metrics_without_project[i : i + batch_size]
-            self.stdout.write(f"\n🔄 Processing batch {i // batch_size + 1} ({i + 1} to {min(i + batch_size, total_count)})...")
+            self.stdout.write(
+                f"\n🔄 Processing batch {i // batch_size + 1} ({i + 1} to {min(i + batch_size, total_count)})..."
+            )
 
             for metric in batch:
                 try:
@@ -90,9 +92,7 @@ class Command(BaseCommand):
                             metric.save(update_fields=["project_id"])
                         updated_count += 1
                         self.stdout.write(
-                            self.style.SUCCESS(
-                                f"  ✓ Updated metric {metric.metrics_id} with project_id {project_id}"
-                            )
+                            self.style.SUCCESS(f"  ✓ Updated metric {metric.metrics_id} with project_id {project_id}")
                         )
                     else:
                         skipped_count += 1
