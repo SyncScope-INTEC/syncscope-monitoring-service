@@ -106,6 +106,7 @@ class CodeMetricsSerializer(serializers.ModelSerializer):
         fields = [
             "metrics_id",
             "session",
+            "project_id",
             "file_path",
             "file_extension",
             "lines_of_code",

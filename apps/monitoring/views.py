@@ -752,8 +752,8 @@ def get_all_code_metrics(request):
             # Filter by sessions that belong to the user
             queryset = queryset.filter(session__user_id=user_id)
         if project_id:
-            # Filter by project path or metadata
-            queryset = queryset.filter(session__project_path__icontains=project_id)
+            # Filter by project_id field directly (more efficient than text search)
+            queryset = queryset.filter(project_id=project_id)
         if start_date:
             from dateutil.parser import parse
 
