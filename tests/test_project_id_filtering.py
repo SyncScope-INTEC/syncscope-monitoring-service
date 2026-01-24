@@ -35,18 +35,10 @@ class ProjectIdFilteringTest(APITestCase):
 
         # Create metrics with project_id
         self.metric1 = CodeMetrics.objects.create(
-            session=self.session1,
-            project_id=self.project_id_1,
-            file_path="file1.py",
-            file_extension="py",
-            lines_of_code=100,
+            session=self.session1, project_id=self.project_id_1, file_path="file1.py", file_extension="py", lines_of_code=100
         )
         self.metric2 = CodeMetrics.objects.create(
-            session=self.session2,
-            project_id=self.project_id_2,
-            file_path="file2.py",
-            file_extension="py",
-            lines_of_code=200,
+            session=self.session2, project_id=self.project_id_2, file_path="file2.py", file_extension="py", lines_of_code=200
         )
 
     def test_filter_code_metrics_by_project_id(self):

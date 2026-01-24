@@ -36,12 +36,8 @@ class BackfillProjectIdCommandTest(TestCase):
         self.metric1 = CodeMetrics.objects.create(
             session=self.session_with_metadata, file_path="file1.py", file_extension="py"
         )
-        self.metric2 = CodeMetrics.objects.create(
-            session=self.session_with_path, file_path="file2.py", file_extension="py"
-        )
-        self.metric3 = CodeMetrics.objects.create(
-            session=self.session_no_info, file_path="file3.py", file_extension="py"
-        )
+        self.metric2 = CodeMetrics.objects.create(session=self.session_with_path, file_path="file2.py", file_extension="py")
+        self.metric3 = CodeMetrics.objects.create(session=self.session_no_info, file_path="file3.py", file_extension="py")
 
     def test_backfill_success(self):
         """Test successful backfill using different strategies."""
