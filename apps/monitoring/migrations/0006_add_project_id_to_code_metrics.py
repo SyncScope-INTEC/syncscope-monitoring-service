@@ -3,16 +3,12 @@
 from django.db import migrations, models
 
 
-class Migration(migrations.Migration):
+def fix_table_name_collision(apps, schema_editor):
+    if schema_editor.connection.vendor != "postgresql":
+        return
 
-    dependencies = [
-        ('monitoring', '0005_add_window_focus_activity_type'),
-    ]
-
-    operations = [
-        # Fix table name collision
-        migrations.RunSQL(
-            sql="""
+    with schema_editor.connection.cursor() as cursor:
+        cursor.execute("""
             DO $$
             BEGIN
                 -- Rename imposter table if it exists and real table exists with wrong name
@@ -30,9 +26,18 @@ class Migration(migrations.Migration):
                 END IF;
             END
             $$;
-            """,
-            reverse_sql=""
-        ),
+        """)
+
+
+class Migration(migrations.Migration):
+
+    dependencies = [
+        ("monitoring", "0005_add_window_focus_activity_type"),
+    ]
+
+    operations = [
+        # Fix table name collision
+        migrations.RunPython(fix_table_name_collision, reverse_code=migrations.RunPython.noop),
         
         migrations.AddField(
             model_name='codemetrics',
