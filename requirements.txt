@@ -21,7 +21,7 @@ django-cors-headers==4.9.0
 django-extensions==4.1
 django-ratelimit==4.1.0
 django-redis==6.0.0
-django-timezone-field==7.1
+django-timezone-field==7.2.1
 djangorestframework==3.16.1
 djangorestframework_simplejwt==5.5.1
 drf-spectacular==0.29.0
