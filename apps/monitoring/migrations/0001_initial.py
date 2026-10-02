@@ -16,6 +16,25 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
+            name='User',
+            fields=[
+                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
+                ('password', models.CharField(db_column='password_hash', max_length=128)),
+                ('email', models.EmailField(max_length=254, unique=True)),
+                ('first_name', models.CharField(blank=True, max_length=150)),
+                ('last_name', models.CharField(blank=True, max_length=150)),
+                ('is_staff', models.BooleanField(default=False)),
+                ('is_active', models.BooleanField(default=True)),
+                ('is_superuser', models.BooleanField(default=False)),
+                ('last_login', models.DateTimeField(blank=True, null=True)),
+                ('created_at', models.DateTimeField(auto_now_add=True)),
+            ],
+            options={
+                'db_table': 'users',
+                'managed': False,
+            },
+        ),
+        migrations.CreateModel(
             name='DeveloperSession',
             fields=[
                 ('session_id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
