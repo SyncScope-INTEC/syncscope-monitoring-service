@@ -202,6 +202,12 @@ class CodeMetrics(RetryableModelMixin, models.Model):
     session = models.ForeignKey(
         DeveloperSession, on_delete=models.CASCADE, related_name="code_metrics", db_column="session_id"
     )
+    project_id = models.UUIDField(
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text="Reference to management.projects.id - optional project association",
+    )
     file_path = models.TextField()
     file_extension = models.CharField(max_length=20)
     lines_of_code = models.IntegerField(default=0)
